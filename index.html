@@ -569,19 +569,7 @@ function App(){
 
   /* ══ RENDER ══ */
   return(<>
-    {!FB_ON&&<div className="banner" style={{flexWrap:"wrap",gap:"6px"}}>
-      <i className="ti ti-alert-circle"/>
-      <span style={{flex:1}}>Firebase 未設定，資料僅暫存本機。</span>
-      <button onClick={()=>sFBCfg(true)} style={{padding:"2px 10px",background:"var(--T)",color:"#fff",border:"none",borderRadius:"8px",fontSize:"12px",cursor:"pointer",flexShrink:0}}>
-        <i className="ti ti-settings"/> 設定同步
-      </button>
-    </div>}
-    {FB_ON&&<div style={{background:"#EDF6F1",borderBottom:"1px solid var(--S)",padding:"6px 14px",fontSize:"11px",color:"var(--S)",display:"flex",alignItems:"center",gap:"5px"}}>
-      <i className="ti ti-cloud-check"/> 已連接 Firebase
-      {sync==="err"&&<span style={{color:"var(--W)",fontWeight:"500"}}>· ⚠ 規則可能過期，<a href="https://console.firebase.google.com" target="_blank" style={{color:"var(--W)"}}>點此修正</a></span>}
-      {sync!=="err"&&<span>· 資料即時同步</span>}
-      <button onClick={clearFBConfig} style={{marginLeft:"auto",padding:"1px 7px",background:"none",border:"1px solid var(--S)",borderRadius:"6px",fontSize:"10px",color:"var(--S)",cursor:"pointer"}}>重設</button>
-    </div>}
+    {/* Firebase 狀態整合進齒輪按鈕，不顯示 banner */}
 
     <div className="hd">
       <div className="mnav">
@@ -589,11 +577,16 @@ function App(){
         <div className="mlbl">{yr} 年 {MO[mo-1]}月</div>
         <button className="nb" onClick={nMo}><i className="ti ti-chevron-right"/></button>
         {sync==="saving"&&<span className="sync">同步中…</span>}
-        {sync==="ok"&&<span className="sync ok">✓ 已同步</span>}
-        {sync==="err"&&<span className="sync err" title={window._fbErr||''}
-          onClick={()=>window.open('https://console.firebase.google.com','_blank')}>
-          ⚠ 同步失敗 — 點此修正規則
-        </span>}
+        {sync==="ok"&&<span className="sync ok">✓</span>}
+        {sync==="err"&&<span className="sync err" title="同步失敗，點此設定">⚠</span>}
+        {/* 設定齒輪 */}
+        <button onClick={()=>sFBCfg(true)} style={{
+          background:"none",border:"1px solid var(--bdr)",borderRadius:"7px",
+          padding:"4px 7px",color:FB_ON?"var(--S)":"var(--lt)",
+          cursor:"pointer",fontSize:"14px",display:"flex",alignItems:"center",gap:"3px"
+        }} title={FB_ON?"Firebase 已連接 · 點擊設定":"Firebase 未設定 · 點擊設定"}>
+          <i className={`ti ${FB_ON?"ti-cloud-check":"ti-cloud-off"}`}/>
+        </button>
       </div>
       <div className="tabs">
         <button className={`tb${tab==="cards"?" on":""}`} onClick={()=>sTab("cards")}><i className="ti ti-credit-card"/> 信用卡</button>
@@ -868,7 +861,9 @@ function App(){
     {showFBCfg&&<div style={{position:"fixed",inset:0,background:"rgba(40,28,16,.6)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300,animation:"fi .12s"}} onClick={()=>sFBCfg(false)}>
       <div style={{background:"var(--surf)",borderRadius:"20px 20px 0 0",padding:"20px 20px 36px",width:"100%",maxWidth:"480px",animation:"su .2s cubic-bezier(.2,.7,0,1)"}} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
-          <span style={{fontSize:"16px",fontWeight:"500"}}>🔗 設定 Firebase 同步</span>
+          <span style={{fontSize:"16px",fontWeight:"500"}}>
+            {FB_ON ? "☁️ Firebase 已連接" : "🔗 設定 Firebase 同步"}
+          </span>
           <button className="xb" style={{fontSize:"20px"}} onClick={()=>sFBCfg(false)}><i className="ti ti-x"/></button>
         </div>
         <div style={{background:"var(--Fl)",border:"1px solid var(--F)",borderRadius:"10px",padding:"10px 13px",marginBottom:"16px",fontSize:"12px",color:"#3D6070"}}>
@@ -891,9 +886,21 @@ function App(){
           style={{width:"100%",padding:"11px",background:"var(--T)",color:"#fff",border:"none",borderRadius:"10px",fontSize:"14px",cursor:"pointer",marginTop:"6px"}}>
           <i className="ti ti-cloud-upload"/> 儲存並啟用同步
         </button>
-        <div style={{fontSize:"11px",color:"var(--lt)",textAlign:"center",marginTop:"8px"}}>
+        {FB_ON&&<div style={{marginTop:"10px",padding:"9px 12px",background:"#EDF6F1",borderRadius:"8px",border:"1px solid var(--S)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:"12px",color:"var(--S)",fontWeight:"500"}}>
+              {sync==="err"?"⚠ 同步失敗，請確認 Firebase 規則":"☁️ 已連接，資料即時同步"}
+            </div>
+            <div style={{fontSize:"10px",color:"var(--lt)",marginTop:"2px"}}>huasbudget-default-rtdb.firebaseio.com</div>
+          </div>
+          <button onClick={()=>{if(confirm("確定要清除 Firebase 設定？\n清除後需重新輸入 API Key 才能同步。"))clearFBConfig();}}
+            style={{padding:"4px 10px",background:"none",border:"1px solid var(--W)",borderRadius:"7px",fontSize:"11px",color:"var(--W)",cursor:"pointer",whiteSpace:"nowrap"}}>
+            重設連線
+          </button>
+        </div>}
+        {!FB_ON&&<div style={{fontSize:"11px",color:"var(--lt)",textAlign:"center",marginTop:"8px"}}>
           資料庫網址已預設：huasbudget-default-rtdb.firebaseio.com
-        </div>
+        </div>}
       </div>
     </div>}
     {/* ══ REPORT MODAL ══ */}
