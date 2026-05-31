@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🌿 記帳本</title>
+<!-- PWA：加入手機主畫面 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="記帳本">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#F4EDE0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-tc-webfont@1.0.0/style.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4EDE0;--surf:#FBF6EE;--card:#F7F1E4;
+  --bdr:#DCCDB8;--dk:#3A2A1C;--md:#7B5B43;--lt:#AE9278;
+  --T:#C07848;--Tl:#EDD9C0;
+  --S:#5E7E68;--Sl:#C4D9C8;
+  --J:#7B6DAE;--Jl:#E0DCEF;
+  --F:#7094A8;--Fl:#D6E8F2;
+  --P:#A07840;--Pl:#EDE0C0;
+  --W:#B85050;--Wl:#F0D0D0;
+  --GB:#8FA5B8;--GBl:#D8E4EE;--GBdk:#3D5468;
+  --Cash:#5A8A70;--Cashl:#C8E4D8;  /* 現金綠 */
+  --fn:'LXGW WenKai TC','Noto Serif TC',serif;
+}
+body{background:var(--bg);color:var(--dk);font-family:var(--fn);min-height:100vh;-webkit-font-smoothing:antialiased}
+button,input{font-family:var(--fn);outline:none}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+#root{max-width:480px;margin:0 auto}
+
+/* ─── HEADER ─── */
+.hd{background:var(--surf);border-bottom:1px solid var(--bdr);padding:12px 14px 0;position:sticky;top:0;z-index:50}
+.mnav{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.mlbl{flex:1;text-align:center;font-size:18px;font-weight:500}
+.nb{background:none;border:1px solid var(--bdr);border-radius:7px;padding:4px 8px;color:var(--md);font-size:13px;cursor:pointer}
+.nb:hover{background:var(--card)}
+.sync{font-size:10px;padding:2px 6px;border-radius:20px;background:var(--Tl);color:var(--md)}
+.sync.ok{background:var(--Sl);color:var(--S)}
+.sync.err{background:var(--Wl);color:var(--W);cursor:pointer}
+.tabs{display:flex}
+.tb{flex:1;padding:7px 2px;background:none;border:none;border-bottom:2.5px solid transparent;font-size:11px;color:var(--lt);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:2px;white-space:nowrap}
+.tb.on{color:var(--T);border-bottom-color:var(--T)}
+.tb.on.stab{color:var(--GB);border-bottom-color:var(--GB)}
+.tb.on.ftab{color:var(--F);border-bottom-color:var(--F)}
+.tb.on.ctab{color:var(--Cash);border-bottom-color:var(--Cash)}
+
+/* ─── SHARED ─── */
+.bd{padding:13px 13px 80px}
+.pr{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:11px}
+.pl{padding:4px 12px;border-radius:20px;border:1px solid var(--bdr);font-size:13px;background:transparent;color:var(--md);cursor:pointer}
+.pl.on{background:var(--T);border-color:var(--T);color:#fff}
+.gh{padding:4px 9px;border-radius:20px;font-size:12px;background:none;border:1px dashed var(--bdr);color:var(--lt);cursor:pointer;display:inline-flex;align-items:center;gap:3px}
+.gh:hover{border-color:var(--md);color:var(--md)}
+.sc{background:var(--surf);border:1px solid var(--bdr);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.slbl{font-size:11px;color:var(--lt);letter-spacing:.06em;display:block;margin:12px 0 5px}
+
+/* rows */
+.r4{display:grid;grid-template-columns:80px 1fr auto 22px;gap:5px;align-items:center;margin-bottom:3px}
+.r3{display:grid;grid-template-columns:80px 1fr 22px;gap:5px;align-items:center;margin-bottom:5px}
+.ti{background:var(--bg);border:1px solid var(--bdr);border-radius:7px;padding:5px 8px;font-size:13px;color:var(--dk);width:100%}
+.ti:focus{border-color:var(--T)}
+.ad{background:var(--bg);border:1px solid var(--bdr);border-radius:7px;padding:5px 8px;font-size:14px;text-align:right;cursor:pointer;color:var(--dk);min-height:31px;display:flex;align-items:center;justify-content:flex-end;font-weight:500}
+.ad:hover{border-color:var(--T)}
+.ad.e{color:var(--lt);font-size:12px;font-weight:400}
+.ad.joint{border-color:var(--J);background:var(--Jl)}
+.ad.pend{border-color:var(--P);background:var(--Pl)}
+.ad.sm{font-size:13px;min-height:27px;padding:3px 7px}
+
+/* tag */
+.tagbtn{padding:2px 6px;border-radius:8px;font-size:11px;border:1px solid var(--bdr);background:transparent;color:var(--lt);cursor:pointer;white-space:nowrap}
+.tagbtn.joint{background:var(--J);border-color:var(--J);color:#fff}
+.tagbtn.pend{background:var(--P);border-color:var(--P);color:#fff}
+
+/* split sub-row */
+.split-row{display:flex;align-items:center;gap:5px;padding:2px 0 5px 2px;margin-bottom:3px}
+.split-lbl{font-size:11px;color:var(--lt);white-space:nowrap;flex-shrink:0}
+.split-note{font-size:11px;color:var(--md)}
+
+.xb{background:none;border:none;cursor:pointer;color:var(--Tl);display:flex;align-items:center;font-size:15px}
+.xb:hover{color:var(--T)}
+.dv{border:none;border-top:1px solid var(--bdr);margin:10px 0}
+.cbf{font-size:12px;color:var(--lt);margin-bottom:5px}
+.cbf b{color:var(--md)}
+
+/* card totals */
+.trow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:10px}
+.tbox{border-radius:8px;padding:7px 9px}
+.tbox.per{background:var(--card);border:1px solid var(--bdr)}
+.tbox.jnt{background:var(--Jl);border:1px solid var(--J)}
+.tbox.pnt{background:var(--Pl);border:1px solid var(--P)}
+.tfml{font-size:10px;color:var(--lt);margin-bottom:1px}
+.tbox.jnt .tfml{color:var(--J)}.tbox.pnt .tfml{color:var(--P)}
+.tamt{font-size:15px;font-weight:700}
+.tbox.jnt .tamt{color:var(--J)}.tbox.pnt .tamt{color:var(--P)}
+.lsb{margin-top:7px;width:100%;padding:7px;border:1px dashed var(--bdr);border-radius:8px;background:none;cursor:pointer;color:var(--lt);font-size:12px;display:flex;align-items:center;justify-content:center;gap:4px}
+.lsb:hover{border-color:var(--T);color:var(--T)}
+.ncr{display:flex;gap:5px;align-items:center;flex:1;min-width:130px}
+.nci{flex:1;background:var(--bg);border:1px solid var(--T);border-radius:7px;padding:4px 8px;font-size:13px;color:var(--dk)}
+.ncc{padding:4px 11px;border-radius:20px;font-size:12px;background:var(--T);color:#fff;border:none;cursor:pointer}
+
+/* ─── CASH PAGE ─── */
+.cash-add{background:var(--surf);border:1px solid var(--bdr);border-radius:13px;padding:12px 14px;margin-bottom:12px}
+.cash-add-title{font-size:12px;color:var(--lt);margin-bottom:8px;letter-spacing:.05em}
+.cash-grid{display:grid;grid-template-columns:50px 80px 1fr 36px;gap:5px;align-items:center}
+.day-input{background:var(--bg);border:1px solid var(--bdr);border-radius:7px;padding:5px 6px;font-size:13px;color:var(--dk);width:100%;text-align:center}
+.add-btn{background:var(--Cash);color:#fff;border:none;border-radius:7px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+.cash-item{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:8px 12px;margin-bottom:6px;display:grid;grid-template-columns:30px 90px 1fr 22px;gap:6px;align-items:center}
+.cash-day{font-size:12px;color:var(--lt);text-align:center}
+.cash-amt{font-size:15px;font-weight:700;color:var(--dk);text-align:right}
+.cash-note{font-size:13px;color:var(--md)}
+.cash-total{margin-top:14px;padding:11px 14px;background:var(--Cashl);border-radius:11px;border:1px solid var(--Cash);display:flex;justify-content:space-between;align-items:baseline}
+.cash-total-l{font-size:13px;color:var(--Cash)}
+.cash-total-a{font-size:22px;font-weight:700;color:var(--Cash)}
+
+/* ─── SUMMARY ─── */
+.sg{font-size:10px;color:var(--lt);letter-spacing:.07em;margin:0 0 7px;display:flex;align-items:center;gap:6px}
+.sg::after{content:'';flex:1;border-top:1px dashed var(--bdr)}
+.sg.fsg{color:var(--F)}.sg.fsg::after{border-color:var(--F)}
+.sg.csg{color:var(--Cash)}.sg.csg::after{border-color:var(--Cash)}
+
+/* pie */
+.pie-wrap{background:var(--surf);border:1px solid var(--bdr);border-radius:13px;padding:13px;margin-bottom:10px}
+.pie-row{display:flex;align-items:center;gap:11px}
+.pie-legend{flex:1;overflow:hidden}
+.pie-li{display:flex;align-items:center;gap:4px;margin-bottom:4px;min-width:0}
+.pie-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pie-lbl{font-size:11px;color:var(--lt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pie-lbl.dim{text-decoration:line-through;opacity:.5}
+.pie-val{font-size:11px;font-weight:500;color:var(--dk);flex-shrink:0}
+.pie-val.dim{opacity:.5}
+.skip-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--bdr)}
+.skip-chip{padding:3px 7px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid var(--F);background:var(--Fl);color:var(--F);white-space:nowrap;display:flex;align-items:center;gap:3px}
+.skip-chip.off{border-color:var(--bdr);background:transparent;color:var(--lt);text-decoration:line-through}
+.ssc{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:7px 11px;margin-bottom:6px}
+.ssc.bsc{border-color:var(--S);background:#EDF6F1}
+.sr{display:grid;grid-template-columns:98px 1fr 22px;gap:5px;align-items:center}
+.sl{display:flex;align-items:center;gap:4px;font-size:13px;min-width:0}
+.ab{font-size:10px;padding:1px 5px;border-radius:7px;white-space:nowrap;flex-shrink:0}
+.ab.bab{color:var(--S);background:var(--Sl)}
+.ab.jab{color:var(--J);background:var(--Jl)}
+.ab.pab{color:var(--P);background:var(--Pl)}
+.ab.tab2{color:var(--md);background:var(--Tl)}
+.auto-n{text-align:right;font-size:15px;font-weight:700;padding:4px 7px}
+.auto-n.bn{color:var(--S)}.auto-n.wn{color:var(--W)}
+.tbar{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:10px 13px;margin-bottom:13px}
+.tbar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.tbar-lbl{font-size:12px;color:var(--lt)}
+.prog{height:5px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width .3s}
+.stot{margin-top:14px;padding:13px 15px;background:var(--GBl);border-radius:12px;border:1px solid var(--GB)}
+.stot.over{background:var(--Wl);border-color:var(--W)}
+.sleg{font-size:11px;margin-bottom:5px;display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.sbottom{display:flex;justify-content:space-between;align-items:baseline}
+.samt{font-size:23px;font-weight:700;color:var(--GBdk)}
+.tgt-chip{font-size:11px;margin-top:4px;padding:2px 7px;border-radius:20px;display:inline-block}
+.tgt-chip.ok{background:var(--Sl);color:var(--S)}
+.tgt-chip.over{background:var(--Wl);color:var(--W)}
+.float-box{margin-top:8px;padding:10px 13px;border-radius:10px;display:flex;justify-content:space-between;align-items:center}
+.float-box.jbox{background:var(--Jl);border:1px solid var(--J)}
+.float-box.pbox{background:var(--Pl);border:1px solid var(--P)}
+.fb-l{font-size:13px;font-weight:500}
+.fb-s{font-size:10px;margin-top:1px}
+.jbox .fb-l,.jbox .fb-s{color:var(--J)}
+.pbox .fb-l,.pbox .fb-s{color:var(--P)}
+.fb-a{font-size:19px;font-weight:700}
+.jbox .fb-a{color:var(--J)}.pbox .fb-a{color:var(--P)}
+
+/* ─── REPORT MODAL ─── */
+.rpt-ov{position:fixed;inset:0;background:rgba(40,28,16,.6);display:flex;flex-direction:column;z-index:300;animation:fi .12s}
+.rpt-panel{background:var(--surf);flex:1;display:flex;flex-direction:column;margin-top:50px;border-radius:20px 20px 0 0;animation:su .2s cubic-bezier(.2,.7,0,1)}
+.rpt-header{padding:14px 16px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.rpt-title{font-size:16px;font-weight:500}
+.rpt-body{flex:1;overflow-y:auto;padding:14px 16px}
+.rpt-text{font-size:12px;line-height:1.8;color:var(--dk);white-space:pre-wrap;font-family:'Noto Serif TC',serif;background:var(--bg);border-radius:9px;padding:12px 14px;border:1px solid var(--bdr)}
+.rpt-copy{padding:8px 18px;background:var(--S);color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:13px;margin-top:12px;width:100%}
+.rpt-copy.done{background:var(--F)}
+
+/* ─── FIXED PAGE ─── */
+.fhero{background:var(--Fl);border:1px solid var(--F);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.fhero-t{font-size:14px;font-weight:500;color:var(--F);margin-bottom:2px;display:flex;align-items:center;gap:5px}
+.fhero-s{font-size:12px;color:#3D6070}
+.color-dot-hint{font-size:10px;color:var(--lt);margin-top:2px;padding-left:2px}
+.tgt-sec{background:var(--surf);border:1px solid var(--bdr);border-radius:11px;padding:11px 13px;margin-bottom:12px}
+.tgt-sec-t{font-size:11px;color:var(--lt);letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.frow{display:grid;grid-template-columns:80px 22px 1fr auto 22px;gap:5px;align-items:center;margin-bottom:5px}
+.fsc2{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:8px 11px;margin-bottom:6px}
+.fsc2:hover{border-color:var(--F)}.fsc2.buf{border-color:var(--S);background:#EDF6F1}
+.bbtn{padding:2px 6px;border-radius:8px;font-size:11px;border:1px solid var(--bdr);background:transparent;color:var(--lt);cursor:pointer;white-space:nowrap}
+.bbtn:hover{border-color:var(--S);color:var(--S)}.bbtn.on{background:var(--S);border-color:var(--S);color:#fff}
+.buf-disp{background:var(--Sl);border:1px solid var(--S);border-radius:7px;padding:5px 8px;font-size:14px;text-align:right;color:var(--S);font-weight:700;min-height:31px;display:flex;align-items:center;justify-content:flex-end}
+.buf-disp.neg{background:var(--Wl);border-color:var(--W);color:var(--W)}
+.fsum{margin-top:11px;padding:10px 13px;background:var(--Fl);border-radius:10px;border:1px solid var(--F)}
+
+/* misc */
+.empty{text-align:center;padding:3rem 1rem;color:var(--lt)}
+.empty i{font-size:34px;display:block;margin-bottom:9px}.empty p{font-size:14px}
+.ar{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.banner{background:#FEF3E2;border-bottom:1px solid #F5C98A;padding:8px 13px;font-size:12px;color:#7C5520;display:flex;align-items:center;gap:5px}
+
+/* ─── CALCULATOR ─── */
+.ov{position:fixed;inset:0;background:rgba(50,35,20,.5);display:flex;align-items:flex-end;justify-content:center;z-index:200;animation:fi .1s}
+.cp{background:var(--surf);border-radius:20px 20px 0 0;padding:15px 15px 26px;width:100%;max-width:480px;animation:su .18s cubic-bezier(.2,.7,0,1.15)}
+.cdisp{background:var(--bg);border-radius:10px;padding:10px 13px 8px;margin-bottom:11px;border:1px solid var(--bdr)}
+.cexpr{font-size:12px;color:var(--lt);text-align:right;min-height:15px;margin-bottom:2px}
+.cres{font-size:32px;font-weight:700;color:var(--dk);text-align:right;line-height:1.1;word-break:break-all}
+.cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cb{border:none;border-radius:10px;padding:13px 4px;font-size:18px;font-weight:500;cursor:pointer;transition:transform .06s}
+.cb:active{transform:scale(.91)}
+.kn{background:var(--card);color:var(--dk);border:1px solid var(--bdr)}
+.ko{background:#E8D5BC;color:var(--T)}.ke{background:var(--T);color:#fff}
+.kc{background:#E8D5BC;color:var(--md);font-size:13px}
+.kk{background:var(--S);color:#fff;font-size:13px;grid-column:span 2}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+</style>
+</head>
+<body>
+<script>
+// 先從 localStorage 讀取已存的 Firebase 設定
+const _fbc=(function(){try{const v=localStorage.getItem("lb:FBCFG");return v?JSON.parse(v):null;}catch{return null;}})();
+const FB=_fbc||{
+  apiKey:           "FILL_YOUR_API_KEY",
+  messagingSenderId:"FILL_SENDER_ID",
+  appId:            "FILL_APP_ID",
+  authDomain:       "huasbudget.firebaseapp.com",
+  databaseURL:      "https://huasbudget-default-rtdb.firebaseio.com/",
+  projectId:        "huasbudget",
+  storageBucket:    "huasbudget.appspot.com"
+};
+let db=null;
+const FB_ON=FB.apiKey!=="FILL_YOUR_API_KEY"&&FB.apiKey!=="";
+if(FB_ON){try{firebase.initializeApp(FB);db=firebase.database();}catch(e){console.warn(e);}}
+const LSG=k=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}};
+const LSS=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
+async function dbLoad(k){
+  if(!db)return null;
+  try{const s=await db.ref("ledger/"+k).once("value");return s.val();}
+  catch(e){console.warn("Firebase load:",e.code||e.message);window._fbErr=e.code||e.message||"unknown";return null;}
+}
+async function dbSave(k,d){
+  if(!db)return false;
+  try{await db.ref("ledger/"+k).set(d);return true;}
+  catch(e){
+    console.warn("Firebase save:",e.code||e.message);
+    window._fbErr=e.code||e.message||"unknown";
+    return false;
+  }
+}
+</script>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+const uid=()=>Math.random().toString(36).slice(2,9);
+const fmt=n=>Math.round(Number(n)||0).toLocaleString("zh-TW");
+const MO=["一","二","三","四","五","六","七","八","九","十","十一","十二"];
+const evalX=s=>{if(!s)return null;try{const r=Function('"use strict";return('+s.replace(/×/g,"*").replace(/÷/g,"/").replace(/[^0-9+\-*/.()]/g,"")+")")();return isFinite(r)?Math.round(r*100)/100:null;}catch{return null;}};
+
+const cycleTag=t=>!t?"joint":t==="joint"?"pending":null;
+const tagLabel=t=>!t?"標記":t==="joint"?"金庫 ✓":"待收 ✓";
+const tagCls=t=>!t?"":t==="joint"?" joint":" pend";
+const adCls=t=>!t?"":t==="joint"?" joint":" pend";
+const FPAL=['#7094A8','#5B7E94','#8BAFC4','#4D6B80','#9BBDCC','#3D5A6C'];
+const BRED='#A86050'; /* 棕紅色 - 用於標記的固定項目 */
+const getFixedColor=(item,idx)=>item.accentColor==='red'?BRED:FPAL[idx%FPAL.length];
+
+/* ─── Donut ─── */
+function Donut({segs,size=126,thick=21}){
+  const tot=segs.reduce((s,x)=>s+(x.v||0),0);
+  if(!tot)return<div style={{width:size,height:size,borderRadius:'50%',background:'var(--bdr)',flexShrink:0}}/>;
+  const r=(size-thick)/2,C=2*Math.PI*r,cx=size/2,cy=size/2;
+  let rot=-90;
+  return(
+    <svg width={size} height={size} style={{display:'block',flexShrink:0}}>
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--card)" strokeWidth={thick}/>
+      {segs.filter(s=>s.v>0).map((s,i)=>{
+        const pct=s.v/tot,dash=Math.max(0,C*pct-1.5),r0=rot;
+        rot+=pct*360;
+        return<circle key={i} cx={cx} cy={cy} r={r} fill="none"
+          stroke={s.dim?"#D5C8B5":s.color} strokeWidth={thick}
+          strokeDasharray={`${dash} ${C}`}
+          transform={`rotate(${r0} ${cx} ${cy})`}
+          style={{transition:'stroke .25s'}}/>;
+      })}
+    </svg>
+  );
+}
+
+/* ─── Calc ─── */
+function Calc({init,onOk,onClose}){
+  const[ex,sEx]=useState(init?String(init):"");
+  const[dp,sDp]=useState(init?fmt(init):"0");
+  const upd=e=>{const r=evalX(e);if(r!=null)sDp(fmt(r));else{const m=e.match(/\d+\.?\d*$/);sDp(m?fmt(+m[0]):"0");}};
+  const press=k=>{
+    if(k==="C"){sEx("");sDp("0");return;}
+    if(k==="⌫"){const n=ex.slice(0,-1);sEx(n);n?upd(n):sDp("0");return;}
+    if(k==="="){const r=evalX(ex);if(r!=null){sEx(String(r));sDp(fmt(r));}return;}
+    const n=ex+k;sEx(n);if(!["+","-","×","÷"].includes(k))upd(n);
+  };
+  const ok=()=>{const r=evalX(ex);onOk(r!=null?Math.round(r):parseFloat(ex)||0);};
+  const KS=[
+    {l:"C",c:"kc"},{l:"⌫",c:"kc"},{l:"÷",c:"ko"},{l:"×",c:"ko"},
+    {l:"7",c:"kn"},{l:"8",c:"kn"},{l:"9",c:"kn"},{l:"-",c:"ko"},
+    {l:"4",c:"kn"},{l:"5",c:"kn"},{l:"6",c:"kn"},{l:"+",c:"ko"},
+    {l:"1",c:"kn"},{l:"2",c:"kn"},{l:"3",c:"kn"},{l:"=",c:"ke"},
+    {l:"0",c:"kn",s:{gridColumn:"span 2"}},{l:".",c:"kn"},{l:"確認",c:"kk",a:ok},
+  ];
+  return(<div className="ov" onClick={onClose}><div className="cp" onClick={e=>e.stopPropagation()}>
+    <div className="cdisp"><div className="cexpr">{ex||"\u00a0"}</div><div className="cres">{dp}</div></div>
+    <div className="cgrid">{KS.map((k,i)=><button key={i} className={`cb ${k.c}`} style={k.s||{}} onClick={k.a||(()=>press(k.l))}>{k.l}</button>)}</div>
+  </div></div>);
+}
+
+/* ─── Amt ─── */
+function Amt({val,set,ph,tag,sm}){
+  const[o,sO]=useState(false);
+  const has=val!=null&&Number(val)!==0;
+  return(<>
+    <div className={`ad${sm?" sm":""}${!has?" e":""}${adCls(tag)}`} onClick={()=>sO(true)}>{has?fmt(val):(ph||"點擊輸入")}</div>
+    {o&&<Calc init={has?val:0} onOk={v=>{set(v);sO(false);}} onClose={()=>sO(false)}/>}
+  </>);
+}
+
+/* ════════════════ APP ════════════════ */
+function App(){
+  const now=new Date();
+  const[yr,sYr]=useState(now.getFullYear());
+  const[mo,sMo]=useState(now.getMonth()+1);
+  const[tab,sTab]=useState("cards");
+  const[ci,sCi]=useState(0);
+  const[ready,sR]=useState(false);
+  const[sync,sSy]=useState("");
+  const[adding,sAdd]=useState(false);
+  const[nn,sNn]=useState("");
+  const[showReport,sRpt]=useState(false);
+  const[copied,sCopied]=useState(false);
+  const[showFBCfg,sFBCfg]=useState(false);
+  const[fbKey,sFbKey]=useState('');
+  const[fbSid,sFbSid]=useState('');
+  const[fbAid,sFbAid]=useState('');
+  const saveFBConfig=()=>{
+    if(!fbKey.trim())return;
+    localStorage.setItem("lb:FBCFG",JSON.stringify({
+      apiKey:fbKey.trim(),messagingSenderId:fbSid.trim(),appId:fbAid.trim(),
+      authDomain:"huasbudget.firebaseapp.com",
+      databaseURL:"https://huasbudget-default-rtdb.firebaseio.com/",
+      projectId:"huasbudget",storageBucket:"huasbudget.appspot.com"
+    }));
+    window.location.reload();
+  };
+  const clearFBConfig=()=>{localStorage.removeItem("lb:FBCFG");window.location.reload();};
+  /* cash add form */
+  const[cDay,sCDay]=useState("");
+  const[cAmt,sCAmt]=useState(0);
+  const[cNote,sCNote]=useState("");
+  const nr=useRef(null);
+  const dtimer=useRef(null);
+  const ftimer=useRef(null);
+  const mkey=`${yr}-${String(mo).padStart(2,"0")}`;
+
+  const[data,sData]=useState({cards:[],salary:[],skipped:[],cash:[]});
+  const[fixed,sFixed]=useState({target:0,items:[]});
+
+  /* load fixed */
+  useEffect(()=>{
+    const lc=LSG("lb:FIXED");
+    if(lc)sFixed({target:lc.target||0,items:lc.items||[]});
+    dbLoad("FIXED").then(d=>{if(d){sFixed({target:d.target||0,items:d.items||[]});LSS("lb:FIXED",d);}});
+  },[]);
+  useEffect(()=>{LSS("lb:FIXED",fixed);clearTimeout(ftimer.current);ftimer.current=setTimeout(()=>dbSave("FIXED",fixed),900);},[fixed]);
+  const mutF=fn=>sFixed(p=>{const n=JSON.parse(JSON.stringify(p));fn(n);return n;});
+
+  /* load per-month */
+  useEffect(()=>{
+    sR(false); sSy("");
+    // 先清空避免舊資料殘留到新月份
+    sData({cards:[],salary:[],skipped:[],cash:[]});
+    const lc=LSG("lb:"+mkey);
+    if(lc){
+      try{
+        const lnd={cards:[],salary:[],skipped:[],cash:[],...lc};
+        lnd.cards=(lnd.cards||[]).map(card=>({...card,expenses:card.expenses||[],cashback:card.cashback||[]}));
+        sData(lnd);
+      }catch(e){console.warn("LS parse err",e);}
+    }
+    dbLoad(mkey).then(d=>{
+      if(d){
+        const nd={cards:[],salary:[],skipped:[],cash:[],...d};
+      // 清理每張卡確保 expenses/cashback 都是陣列
+      nd.cards=(nd.cards||[]).map(card=>({...card,expenses:card.expenses||[],cashback:card.cashback||[]}));
+        sData(nd);
+        LSS("lb:"+mkey,nd);
+      }
+      sCi(0);
+      sR(true);
+    });
+  },[mkey]);
+  useEffect(()=>{
+    // ready=false 代表月份切換中，不存資料
+    if(!ready)return;
+    LSS("lb:"+mkey,data);
+    clearTimeout(dtimer.current);
+    if(!FB_ON)return;
+    sSy("saving");
+    dtimer.current=setTimeout(async()=>{
+      const ok=await dbSave(mkey,data);
+      if(ok){sSy("ok");setTimeout(()=>sSy(""),2500);}
+      else{sSy("err");}
+    },900);
+  },[data,ready,mkey]);
+
+  const mut=fn=>sData(p=>{const n=JSON.parse(JSON.stringify(p));fn(n);return n;});
+  const pMo=()=>{if(mo===1){sYr(yr-1);sMo(12);}else sMo(mo-1);};
+  const nMo=()=>{if(mo===12){sYr(yr+1);sMo(1);}else sMo(mo+1);};
+
+  /* skip toggle */
+  const skipped=data.skipped||[];
+  const toggleSkip=id=>mut(d=>{if(!d.skipped)d.skipped=[];const i=d.skipped.indexOf(id);if(i>=0)d.skipped.splice(i,1);else d.skipped.push(id);});
+
+  /* expense helpers — splitAmt: portion of expense attributed to tag */
+  const getSplit=(e)=>e.splitAmt!=null?+e.splitAmt:(+e.amt||0);
+  const expPersonal=e=>{
+    if(!e.tag)return +e.amt||0;
+    if(e.tag==="joint")return(+e.amt||0)-getSplit(e); // remainder after joint
+    if(e.tag==="pending")return(+e.amt||0)-getSplit(e); // remainder after friend's share
+    return +e.amt||0;
+  };
+  const expJoint=e=>e.tag==="joint"?getSplit(e):0;
+  const expPending=e=>e.tag==="pending"?getSplit(e):0;
+
+  const cardPN=c=>(c.expenses||[]).reduce((s,e)=>s+expPersonal(e),0)-(c.cashback||[]).reduce((s,x)=>s+(+x.amt||0),0);
+  const cardJT=c=>(c.expenses||[]).reduce((s,e)=>s+expJoint(e),0);
+  const cardPT=c=>(c.expenses||[]).reduce((s,e)=>s+expPending(e),0);
+  const allJoint=()=>data.cards.reduce((s,c)=>s+cardJT(c),0);
+  const allPending=()=>data.cards.reduce((s,c)=>s+cardPT(c),0);
+
+  const si=Math.min(ci,data.cards.length-1);
+  const ac=data.cards[Math.max(0,si)]||null;
+
+  const addCard=()=>{if(!nn.trim())return;const idx=data.cards.length;mut(d=>d.cards.push({id:uid(),name:nn.trim(),expenses:[],cashback:[]}));sCi(idx);sAdd(false);sNn("");};
+  const delCard=id=>{if(!confirm("確定刪除？"))return;mut(d=>{d.cards=d.cards.filter(c=>c.id!==id);d.salary=d.salary.filter(s=>s.cardId!==id);});sCi(0);};
+  const aE=cid=>mut(d=>d.cards.find(c=>c.id===cid)?.expenses.push({id:uid(),amt:0,note:"",tag:null,splitAmt:null}));
+  const uE=(cid,eid,f,v)=>mut(d=>{const e=d.cards.find(c=>c.id===cid)?.expenses.find(e=>e.id===eid);if(e)e[f]=v;});
+  const dE=(cid,eid)=>mut(d=>{const c=d.cards.find(c=>c.id===cid);if(c)c.expenses=c.expenses.filter(e=>e.id!==eid);});
+  const cycE=(cid,eid)=>{
+    const e=ac?.expenses.find(e=>e.id===eid);
+    if(!e)return;
+    const newTag=cycleTag(e.tag);
+    uE(cid,eid,"tag",newTag);
+    // reset splitAmt to null when changing tag (will default to full amount)
+    uE(cid,eid,"splitAmt",null);
+  };
+  const aC=cid=>mut(d=>d.cards.find(c=>c.id===cid)?.cashback.push({id:uid(),amt:0,note:""}));
+  const uC=(cid,cbid,f,v)=>mut(d=>{const x=d.cards.find(c=>c.id===cid)?.cashback.find(x=>x.id===cbid);if(x)x[f]=v;});
+  const dC=(cid,cbid)=>mut(d=>{const c=d.cards.find(c=>c.id===cid);if(c)c.cashback=c.cashback.filter(x=>x.id!==cbid);});
+
+  /* cash */
+  const cashTotal=()=>(data.cash||[]).reduce((s,e)=>s+(+e.amt||0),0);
+  const addCash=()=>{
+    if(!cAmt)return;
+    mut(d=>{if(!d.cash)d.cash=[];d.cash.push({id:uid(),day:+cDay||null,amt:cAmt,note:cNote});});
+    sCAmt(0);sCNote("");sCDay("");
+  };
+  const delCash=id=>mut(d=>{d.cash=(d.cash||[]).filter(e=>e.id!==id);});
+
+  /* salary */
+  const cardLinks=data.salary.filter(s=>s.type==="card");
+  const oneTimers=data.salary.filter(s=>s.type==="onetime");
+  const cardLinksTot=()=>cardLinks.reduce((s,i)=>{const c=data.cards.find(c=>c.id===i.cardId);return s+(c?cardPN(c):0);},0);
+  const oneTimeTot=()=>oneTimers.reduce((s,i)=>s+(+i.amt||0),0);
+
+  /* fixed calc */
+  const _items=fixed.items||[];
+  const bufItem=_items.find(i=>i.isBuffer)||null;
+  const nonBuf=_items.filter(i=>!i.isBuffer);
+  const activeNonBuf=nonBuf.filter(i=>!skipped.includes(i.id));
+  const skippedNonBuf=nonBuf.filter(i=>skipped.includes(i.id));
+  const nonBufTot=activeNonBuf.reduce((s,i)=>s+(+i.amt||0),0);
+  const bufAmt=(fixed.target||0)-nonBufTot-cardLinksTot()-oneTimeTot();
+  const fixedDisp=nonBufTot+(bufItem&&bufAmt>0?bufAmt:0);
+  const grand=fixedDisp+cardLinksTot()+oneTimeTot();
+  const isOver=fixed.target>0&&grand>fixed.target;
+  const pct=fixed.target>0?Math.min(100,Math.round(grand/fixed.target*100)):0;
+
+  const lC=cid=>{const c=data.cards.find(c=>c.id===cid);if(!c||data.salary.some(s=>s.cardId===cid))return;mut(d=>d.salary.push({id:uid(),label:c.name,type:"card",cardId:cid}));};
+  const aOT=()=>mut(d=>d.salary.push({id:uid(),label:"",amt:0,type:"onetime"}));
+  const uS=(id,f,v)=>mut(d=>{const s=d.salary.find(s=>s.id===id);if(s)s[f]=v;});
+  const dS=id=>mut(d=>{d.salary=d.salary.filter(s=>s.id!==id);});
+  const toggleBuf=idx=>mutF(d=>{const was=d.items[idx].isBuffer;d.items.forEach(i=>i.isBuffer=false);if(!was)d.items[idx].isBuffer=true;});
+
+  /* pie */
+  const pieSegs=[
+    ...cardLinks.map(item=>{const c=data.cards.find(c=>c.id===item.cardId);return{label:item.label,v:Math.max(0,c?cardPN(c):0),color:'#C07848'};}).filter(s=>s.v>0),
+    ...nonBuf.map((item,i)=>({label:item.label,v:+item.amt||0,color:getFixedColor(item,i),dim:skipped.includes(item.id)})).filter(s=>s.v>0),
+    ...(bufItem&&bufAmt>0?[{label:bufItem.label,v:bufAmt,color:'#5E7E68'}]:[]),
+    ...oneTimers.filter(i=>+i.amt>0).map(i=>({label:i.label||'額外',v:+i.amt||0,color:'#A07840'})),
+  ];
+  const fixedPieSegs=[
+    ...nonBuf.map((item,i)=>({label:item.label,v:+item.amt||0,color:getFixedColor(item,i)})).filter(s=>s.v>0),
+    ...(bufItem&&bufAmt>0?[{label:bufItem.label,v:bufAmt,color:'#5E7E68'}]:[]),
+  ];
+
+  /* report */
+  const genReport=()=>{
+    const L=[];
+    L.push(`${yr} 年 ${MO[mo-1]}月 月報表`);
+    L.push("");
+    if(data.cards.length>0){
+      L.push("── 信用卡支出 ─────────────────");
+      data.cards.forEach(c=>{
+        const pn=cardPN(c),jt=cardJT(c),pt=cardPT(c);
+        L.push(`▸ ${c.name}  個人 NT$${fmt(pn)}${jt>0?`  金庫 NT$${fmt(jt)}`:''}${pt>0?`  待收 NT$${fmt(pt)}`:''}`);
+        (c.expenses||[]).forEach(e=>{
+          const sp=getSplit(e);
+          const tag=e.tag==="joint"?` (金庫 NT$${fmt(sp)})`:e.tag==="pending"?` (待收 NT$${fmt(sp)})`:'';
+          L.push(`  ${String(fmt(e.amt)).padStart(7)}  ${e.note||'—'}${tag}`);
+        });
+        if((c.cashback||[]).length>0){const cb=(c.cashback||[]).reduce((s,x)=>s+(+x.amt||0),0);L.push(`  回饋 -NT$${fmt(cb)}`);}
+      });
+      L.push("");
+    }
+    if((data.cash||[]).length>0){
+      L.push("── 現金支出 ─────────────────");
+      (data.cash||[]).forEach(e=>{L.push(`  ${e.day?e.day+"日":' '}  ${String(fmt(e.amt)).padStart(7)}  ${e.note||'—'}`);});
+      L.push(`  小計 NT$${fmt(cashTotal())}`);
+      L.push("");
+    }
+    if(fixed.items.length>0){
+      L.push("── 固定開銷 ─────────────────");
+      fixed.items.forEach(i=>{
+        const amt=i.isBuffer?bufAmt:+i.amt;
+        const skip=skipped.includes(i.id);
+        L.push(`  ${String(fmt(amt)).padStart(7)}  ${i.label}${skip?" (本月暫停)":""}${i.isBuffer?" (自動調整)":""}`);
+      });
+      L.push("");
+    }
+    const jt=allJoint(),pt=allPending();
+    if(jt>0||pt>0){
+      L.push("── 特殊項目 ─────────────────");
+      if(jt>0)L.push(`  金庫待轉入  NT$${fmt(jt)}`);
+      if(pt>0)L.push(`  待收款      NT$${fmt(pt)}`);
+      L.push("");
+    }
+    L.push("── 月總結 ─────────────────");
+    if(cardLinksTot())L.push(`  信用卡個人  NT$${fmt(cardLinksTot())}`);
+    if(cashTotal())   L.push(`  現金支出    NT$${fmt(cashTotal())}`);
+    if(fixedDisp)     L.push(`  固定開銷    NT$${fmt(fixedDisp)}`);
+    if(oneTimeTot())  L.push(`  本月額外    NT$${fmt(oneTimeTot())}`);
+    L.push(`  合計        NT$${fmt(grand)}`);
+    if(fixed.target>0)L.push(`  目標        NT$${fmt(fixed.target)}  (${pct}%${isOver?"  ⚠️ 超支":"  ✓"})`);
+    return L.join("\n");
+  };
+
+  const copyReport=()=>{
+    navigator.clipboard.writeText(genReport()).then(()=>{sCopied(true);setTimeout(()=>sCopied(false),2000);});
+  };
+
+  /* ══ RENDER ══ */
+  return(<>
+    {/* Firebase 狀態整合進齒輪按鈕，不顯示 banner */}
+
+    <div className="hd">
+      <div className="mnav">
+        <button className="nb" onClick={pMo}><i className="ti ti-chevron-left"/></button>
+        <div className="mlbl">{yr} 年 {MO[mo-1]}月</div>
+        <button className="nb" onClick={nMo}><i className="ti ti-chevron-right"/></button>
+        {sync==="saving"&&<span className="sync">同步中…</span>}
+        {sync==="ok"&&<span className="sync ok">✓</span>}
+        {sync==="err"&&<span className="sync err" title="同步失敗，點此設定">⚠</span>}
+        {/* 設定齒輪 */}
+        <button onClick={()=>sFBCfg(true)} style={{
+          background:"none",border:"1px solid var(--bdr)",borderRadius:"7px",
+          padding:"4px 7px",color:FB_ON?"var(--S)":"var(--lt)",
+          cursor:"pointer",fontSize:"14px",display:"flex",alignItems:"center",gap:"3px"
+        }} title={FB_ON?"Firebase 已連接 · 點擊設定":"Firebase 未設定 · 點擊設定"}>
+          <i className={`ti ${FB_ON?"ti-cloud-check":"ti-cloud-off"}`}/>
+        </button>
+      </div>
+      <div className="tabs">
+        <button className={`tb${tab==="cards"?" on":""}`} onClick={()=>sTab("cards")}><i className="ti ti-credit-card"/> 信用卡</button>
+        <button className={`tb stab${tab==="salary"?" on":""}`} onClick={()=>sTab("salary")}><i className="ti ti-chart-pie"/> 統整</button>
+        <button className={`tb ftab${tab==="fixed"?" on":""}`} onClick={()=>sTab("fixed")}><i className="ti ti-calendar-repeat"/> 固定</button>
+        <button className={`tb ctab${tab==="cash"?" on":""}`} onClick={()=>sTab("cash")}><i className="ti ti-cash"/> 現金</button>
+      </div>
+    </div>
+
+    {/* ══ CARDS ══ */}
+    {tab==="cards"&&<div className="bd">
+      <div className="pr">
+        {data.cards.map((c,i)=><button key={c.id} className={`pl${i===si?" on":""}`} onClick={()=>sCi(i)}>{c.name}</button>)}
+        {adding
+          ?<div className="ncr"><input ref={nr} className="nci" value={nn} placeholder="卡片名稱" autoFocus onChange={e=>sNn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCard()}/><button className="ncc" onClick={addCard}>確認</button><button className="xb" onClick={()=>{sAdd(false);sNn("");}}><i className="ti ti-x"/></button></div>
+          :<button className="gh" onClick={()=>{sAdd(true);setTimeout(()=>nr.current?.focus(),50);}}><i className="ti ti-plus"/> 新增卡片</button>
+        }
+      </div>
+      {!ac&&<div className="empty"><i className="ti ti-credit-card"/><p>點上方新增卡片</p></div>}
+      {ac&&<div className="sc">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontSize:"17px",fontWeight:"500"}}>{ac.name}</span>
+          <button onClick={()=>delCard(ac.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--lt)",fontSize:"12px",display:"flex",alignItems:"center",gap:"3px"}}><i className="ti ti-trash"/> 刪除</button>
+        </div>
+        <span className="slbl">✦ 消費明細</span>
+        <div style={{fontSize:"11px",color:"var(--lt)",marginBottom:"6px"}}>點「標記」循環：一般 → 金庫（全額）→ 待收款（可調整金額）</div>
+        {(ac.expenses||[]).map(e=>(
+          <div key={e.id}>
+            <div className="r4">
+              <Amt val={e.amt} set={v=>uE(ac.id,e.id,"amt",v)} tag={e.tag}/>
+              <input className="ti" value={e.note} placeholder="備註" onChange={ev=>uE(ac.id,e.id,"note",ev.target.value)}
+                style={e.tag==="joint"?{borderColor:"var(--J)",background:"var(--Jl)"}:e.tag==="pending"?{borderColor:"var(--P)",background:"var(--Pl)"}:{}}/>
+              <button className={`tagbtn${tagCls(e.tag)}`} onClick={()=>cycE(ac.id,e.id)}>{tagLabel(e.tag)}</button>
+              <button className="xb" onClick={()=>dE(ac.id,e.id)}><i className="ti ti-x"/></button>
+            </div>
+            {/* split sub-row — shows when tagged */}
+            {e.tag&&<div className="split-row">
+              <span className="split-lbl">{e.tag==="joint"?"金庫金額":"朋友欠款"}：</span>
+              <div style={{width:"75px",flexShrink:0}}>
+                <Amt val={getSplit(e)===+e.amt&&e.splitAmt==null?+e.amt:getSplit(e)}
+                     set={v=>uE(ac.id,e.id,"splitAmt",v)} sm={true}
+                     tag={e.tag}/>
+              </div>
+              {e.tag==="pending"&&getSplit(e)!==(+e.amt||0)&&<span className="split-note">我付 {fmt((+e.amt||0)-getSplit(e))}</span>}
+              {e.tag==="joint"&&getSplit(e)!==(+e.amt||0)&&<span className="split-note">個人付 {fmt((+e.amt||0)-getSplit(e))}</span>}
+            </div>}
+          </div>
+        ))}
+        <button className="gh" onClick={()=>aE(ac.id)}><i className="ti ti-plus"/> 新增消費</button>
+        <div className="dv"/>
+        <span className="slbl" style={{marginTop:0}}>✦ 回饋點數（扣除）</span>
+        {(ac.cashback||[]).length>0&&(()=>{const a=ac.cashback.map(x=>Math.round(+x.amt||0));const s=a.reduce((a,b)=>a+b,0);return<div className="cbf">{a.map(x=>`-${x}`).join(" ")} = <span style={{fontWeight:"700"}}>-{fmt(s)}</span></div>;})()}
+        {(ac.cashback||[]).map(cb=>(
+          <div key={cb.id} className="r3">
+            <Amt val={cb.amt} set={v=>uC(ac.id,cb.id,"amt",v)}/>
+            <input className="ti" value={cb.note} placeholder="備註" onChange={ev=>uC(ac.id,cb.id,"note",ev.target.value)}/>
+            <button className="xb" onClick={()=>dC(ac.id,cb.id)}><i className="ti ti-x"/></button>
+          </div>
+        ))}
+        <button className="gh" onClick={()=>aC(ac.id)}><i className="ti ti-plus"/> 新增點數</button>
+        {(()=>{
+          const pE=(ac.expenses||[]).reduce((s,e)=>s+expPersonal(e),0);
+          const jE=(ac.expenses||[]).reduce((s,e)=>s+expJoint(e),0);
+          const pnE=(ac.expenses||[]).reduce((s,e)=>s+expPending(e),0);
+          const cb=(ac.cashback||[]).reduce((s,x)=>s+(+x.amt||0),0);
+          return<div className="trow">
+            <div className="tbox per"><div className="tfml">個人 −{fmt(cb)} 回饋</div><div className="tamt">NT$ {fmt(pE-cb)}</div></div>
+            <div className="tbox jnt"><div className="tfml">金庫</div><div className="tamt">NT$ {fmt(jE)}</div></div>
+            <div className="tbox pnt"><div className="tfml">待收款</div><div className="tamt">NT$ {fmt(pnE)}</div></div>
+          </div>;
+        })()}
+        {!data.salary.some(s=>s.cardId===ac.id)&&<button className="lsb" onClick={()=>{lC(ac.id);sTab("salary");}}><i className="ti ti-arrow-right"/> 加入每月統整</button>}
+      </div>}
+    </div>}
+
+    {/* ══ CASH ══ */}
+    {tab==="cash"&&<div className="bd">
+      {/* add form */}
+      <div className="cash-add">
+        <div className="cash-add-title">新增現金支出</div>
+        <div className="cash-grid">
+          <input className="day-input" type="number" min="1" max="31" value={cDay} placeholder="日" onChange={e=>sCDay(e.target.value)}/>
+          <Amt val={cAmt} set={sCAmt} ph="金額"/>
+          <input className="ti" value={cNote} placeholder="備註（如：早餐、超商）" onChange={e=>sCNote(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCash()}/>
+          <button className="add-btn" onClick={addCash}><i className="ti ti-plus"/></button>
+        </div>
+      </div>
+
+      {(!data.cash||data.cash.length===0)&&<div className="empty" style={{padding:"2.5rem 1rem"}}><i className="ti ti-cash"/><p>尚無現金支出記錄</p></div>}
+
+      {(data.cash||[]).sort((a,b)=>(b.day||0)-(a.day||0)).map(e=>(
+        <div key={e.id} className="cash-item">
+          <div className="cash-day">{e.day?e.day+"日":""}</div>
+          <div className="cash-amt">NT$ {fmt(e.amt)}</div>
+          <div className="cash-note">{e.note}</div>
+          <button className="xb" onClick={()=>delCash(e.id)}><i className="ti ti-x"/></button>
+        </div>
+      ))}
+
+      {(data.cash||[]).length>0&&<div className="cash-total">
+        <div><div className="cash-total-l">本月現金支出</div><div style={{fontSize:"11px",color:"var(--Cash)",marginTop:"2px"}}>{(data.cash||[]).length} 筆</div></div>
+        <div className="cash-total-a">NT$ {fmt(cashTotal())}</div>
+      </div>}
+    </div>}
+
+    {/* ══ SUMMARY ══ */}
+    {tab==="salary"&&<div className="bd">
+      {fixed.target>0&&<div className="tbar">
+        <div className="tbar-top">
+          <span className="tbar-lbl">本月目標 NT$ {fmt(fixed.target)}</span>
+          <span style={{fontSize:"12px",fontWeight:"500",color:isOver?"var(--W)":"var(--S)"}}>{pct}% {isOver?"⚠️":"✓"}</span>
+        </div>
+        <div className="prog"><div className="prog-fill" style={{width:pct+"%",background:isOver?"var(--W)":"var(--S)"}}/></div>
+      </div>}
+
+      {/* 信用卡 */}
+      <div className="sg">信用卡個人支出</div>
+      {cardLinks.length===0&&<div style={{fontSize:"12px",color:"var(--lt)",marginBottom:"10px",padding:"8px 11px",background:"var(--card)",borderRadius:"9px",border:"1px dashed var(--bdr)",display:"flex",alignItems:"center",gap:"8px"}}>
+        尚未連結 <button onClick={()=>sTab("cards")} style={{background:"var(--T)",color:"#fff",border:"none",borderRadius:"7px",padding:"2px 8px",fontSize:"11px",cursor:"pointer"}}>前往</button>
+      </div>}
+      {cardLinks.map(item=>{const c=data.cards.find(c=>c.id===item.cardId);return<div key={item.id} className="ssc">
+        <div className="sr"><div className="auto-n">{fmt(c?cardPN(c):0)}</div>
+        <div className="sl"><i className="ti ti-credit-card" style={{color:"var(--lt)",fontSize:"13px"}}/>{item.label}<span className="ab tab2">自動</span></div>
+        <button className="xb" onClick={()=>dS(item.id)}><i className="ti ti-x"/></button></div>
+      </div>;})}
+      <div className="ar">{data.cards.filter(c=>!data.salary.some(s=>s.cardId===c.id)).map(c=>(<button key={c.id} className="gh" onClick={()=>lC(c.id)}><i className="ti ti-credit-card"/> 連結 {c.name}</button>))}</div>
+
+      {/* 現金 */}
+      {cashTotal()>0&&<><div className="sg csg" style={{marginTop:"16px"}}>現金支出</div>
+        <div className="ssc" style={{borderColor:"var(--Cash)",background:"#EEF7F2"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div className="sl"><i className="ti ti-cash" style={{color:"var(--Cash)",fontSize:"13px"}}/>本月現金 <span className="ab" style={{color:"var(--Cash)",background:"var(--Cashl)"}}>{(data.cash||[]).length} 筆</span></div>
+            <div style={{fontSize:"15px",fontWeight:"700",color:"var(--Cash)"}}>NT$ {fmt(cashTotal())}</div>
+          </div>
+        </div>
+      </>}
+
+      {/* 固定圓餅 */}
+      <div className="sg fsg" style={{marginTop:"16px"}}>固定開銷分配</div>
+      {fixed.items.length===0
+        ?<div style={{fontSize:"12px",color:"var(--lt)",marginBottom:"10px",padding:"8px 11px",background:"var(--Fl)",borderRadius:"9px",border:"1px dashed var(--F)",display:"flex",alignItems:"center",gap:"8px"}}>
+          尚未設定 <button onClick={()=>sTab("fixed")} style={{background:"var(--F)",color:"#fff",border:"none",borderRadius:"7px",padding:"2px 8px",fontSize:"11px",cursor:"pointer"}}>前往設定</button>
+        </div>
+        :<div className="pie-wrap">
+          <div className="pie-row">
+            <Donut segs={pieSegs}/>
+            <div className="pie-legend">
+              {pieSegs.map((s,i)=>(
+                <div key={i} className="pie-li">
+                  <div className="pie-dot" style={{background:s.dim?"#D5C8B5":s.color}}/>
+                  <span className={`pie-lbl${s.dim?" dim":""}`}>{s.label}</span>
+                  <span className={`pie-val${s.dim?" dim":""}`}>{fmt(s.v)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {nonBuf.length>0&&<div className="skip-row">
+            <span style={{fontSize:"10px",color:"var(--lt)",alignSelf:"center",flexShrink:0}}>機動</span>
+            {nonBuf.map(item=>{const off=skipped.includes(item.id);return<button key={item.id} className={`skip-chip${off?" off":""}`} onClick={()=>toggleSkip(item.id)}>{item.label} <span style={{fontSize:"9px",opacity:.7}}>{off?"暫停":"✓"}</span></button>;})}
+          </div>}
+          {skippedNonBuf.length>0&&bufItem&&<div style={{fontSize:"11px",color:"var(--S)",marginTop:"5px"}}>NT$ {fmt(skippedNonBuf.reduce((s,i)=>s+(+i.amt||0),0))} 已暫停 → 自動納入 {bufItem.label}</div>}
+          {bufItem&&<div className="ssc bsc" style={{marginTop:"9px",marginBottom:"0"}}>
+            <div className="sr">
+              <div className={`auto-n${bufAmt<0?" wn":" bn"}`}>{bufAmt<0?"−":""}{fmt(Math.abs(bufAmt))}</div>
+              <div className="sl"><i className="ti ti-arrows-exchange" style={{color:"var(--S)",fontSize:"13px"}}/>{bufItem.label}<span className="ab bab">自動調整</span></div>
+              <div/>
+            </div>
+            {bufAmt<0&&<div style={{fontSize:"11px",color:"var(--W)",marginTop:"3px"}}>⚠️ 超出目標 NT$ {fmt(Math.abs(bufAmt))}</div>}
+          </div>}
+        </div>
+      }
+
+      {oneTimers.length>0&&<><div className="sg" style={{marginTop:"15px"}}>本月額外</div>
+        {oneTimers.map(item=>(
+          <div key={item.id} className="ssc"><div className="sr">
+            <Amt val={item.amt} set={v=>uS(item.id,"amt",v)}/>
+            <input className="ti" value={item.label} placeholder="項目名稱" onChange={e=>uS(item.id,"label",e.target.value)}/>
+            <button className="xb" onClick={()=>dS(item.id)}><i className="ti ti-x"/></button>
+          </div></div>
+        ))}
+      </>}
+      <button className="gh" style={{marginTop:"7px"}} onClick={aOT}><i className="ti ti-plus"/> 新增本月額外項目</button>
+
+      {/* 合計 */}
+      {(fixed.items.length>0||cardLinks.length>0||oneTimers.length>0||cashTotal()>0)&&<div className={`stot${isOver?" over":""}`}>
+        <div className="sleg">
+          {cardLinksTot()>0&&<span style={{color:"var(--T)"}}>信用卡 {fmt(cardLinksTot())}</span>}
+          {cashTotal()>0&&<><span style={{opacity:.4}}>+</span><span style={{color:"var(--Cash)"}}>現金 {fmt(cashTotal())}</span></>}
+          {fixedDisp>0&&<><span style={{opacity:.4}}>+</span><span style={{color:"var(--F)"}}>固定 {fmt(fixedDisp)}</span></>}
+          {oneTimeTot()>0&&<><span style={{opacity:.4}}>+</span><span style={{color:"var(--md)"}}>額外 {fmt(oneTimeTot())}</span></>}
+        </div>
+        <div className="sbottom">
+          <span style={{fontSize:"13px",color:isOver?"var(--W)":"var(--GBdk)"}}>本月總計</span>
+          <span className="samt">NT$ {fmt(grand+cashTotal())}</span>
+        </div>
+        {fixed.target>0&&<div style={{marginTop:"4px",textAlign:"right"}}>
+          <span className={`tgt-chip${isOver?" over":" ok"}`}>{isOver?`超出 NT$ ${fmt(grand-fixed.target)}`:`距目標剩 NT$ ${fmt(fixed.target-grand)}`}</span>
+        </div>}
+      </div>}
+
+      {allJoint()>0&&<div className="float-box jbox"><div><div className="fb-l"><i className="ti ti-building-bank" style={{marginRight:"4px"}}/>金庫待轉入</div><div className="fb-s">共同帳戶分攤</div></div><div className="fb-a">NT$ {fmt(allJoint())}</div></div>}
+      {allPending()>0&&<div className="float-box pbox"><div><div className="fb-l"><i className="ti ti-clock-dollar" style={{marginRight:"4px"}}/>待收款</div><div className="fb-s">朋友代墊，等待還款</div></div><div className="fb-a">NT$ {fmt(allPending())}</div></div>}
+
+      {/* 月報表按鈕 */}
+      <button style={{marginTop:"14px",width:"100%",padding:"10px",border:"1px solid var(--GB)",borderRadius:"10px",background:"var(--GBl)",color:"var(--GBdk)",fontSize:"13px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"6px"}}
+        onClick={()=>sRpt(true)}>
+        <i className="ti ti-file-text"/> 產生月報表
+      </button>
+    </div>}
+
+    {/* ══ FIXED ══ */}
+    {tab==="fixed"&&<div className="bd">
+      <div className="fhero">
+        <div className="fhero-t"><i className="ti ti-calendar-repeat"/> 固定開銷設定</div>
+        <div className="fhero-s">設定一次，每月自動帶入。「自動調整」動態計算剩餘。</div><div style={{fontSize:"11px",color:"var(--F)",marginTop:"4px"}}>● 項目左邊圓點可切換顏色，棕紅色 = 定期定額</div>
+      </div>
+      {fixedPieSegs.length>0&&<div style={{background:"var(--surf)",border:"1px solid var(--bdr)",borderRadius:"11px",padding:"11px 13px",marginBottom:"12px"}}>
+        <div style={{fontSize:"11px",color:"var(--lt)",marginBottom:"7px",letterSpacing:".05em"}}>固定開銷分配預覽</div>
+        <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+          <Donut segs={fixedPieSegs} size={96} thick={17}/>
+          <div style={{flex:1}}>
+            {fixedPieSegs.map((s,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:"4px",marginBottom:"3px"}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:s.color,flexShrink:0}}/>
+              <span style={{fontSize:"11px",color:"var(--lt)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.label}</span>
+              <span style={{fontSize:"11px",fontWeight:"500",color:"var(--dk)",flexShrink:0}}>{fmt(s.v)}</span>
+            </div>))}
+          </div>
+        </div>
+      </div>}
+      <div className="tgt-sec">
+        <div className="tgt-sec-t"><i className="ti ti-target" style={{color:"var(--F)"}}/> 每月目標總額</div>
+        <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+          <span style={{fontSize:"13px",color:"var(--md)"}}>NT$</span>
+          <Amt val={fixed.target} set={v=>mutF(d=>{d.target=v;})} ph="點擊設定"/>
+        </div>
+        <div style={{fontSize:"11px",color:"var(--lt)",marginTop:"5px"}}>自動調整 = 目標 − 其他固定 − 信用卡 − 額外</div>
+      </div>
+      {fixed.items.length===0&&<div className="empty" style={{padding:"1.5rem 1rem"}}><i className="ti ti-list-check"/><p>新增每月固定開銷</p></div>}
+      {fixed.items.map((item,idx)=>(
+        <div key={item.id} className={`fsc2${item.isBuffer?" buf":""}`}>
+          <div className="frow">
+            {item.isBuffer?<div className={`buf-disp${bufAmt<0?" neg":""}`}>{bufAmt<0?"−":""}{fmt(Math.abs(bufAmt))}</div>
+              :<Amt val={item.amt} set={v=>mutF(d=>{d.items[idx].amt=v;})}/>}
+            {/* 顏色標記按鈕 */}
+            <button
+              title={item.accentColor==='red'?"點擊改回灰藍色":"點擊標記為棕紅色（定期定額用）"}
+              onClick={()=>mutF(d=>{d.items[idx].accentColor=item.accentColor==='red'?undefined:'red';})}
+              style={{width:"20px",height:"20px",borderRadius:"50%",border:`2px solid ${item.accentColor==='red'?'#A86050':'#7094A8'}`,background:item.accentColor==='red'?'#A86050':'transparent',cursor:"pointer",padding:0,flexShrink:0}}
+            />
+            <input className="ti" value={item.label} placeholder="項目名稱" onChange={e=>mutF(d=>{d.items[idx].label=e.target.value;})}
+              style={item.isBuffer?{borderColor:"var(--S)",background:"#EDF6F1"}:item.accentColor==='red'?{borderColor:'#A86050',background:'#F8EDE8'}:{}}/>
+            <button className={`bbtn${item.isBuffer?" on":""}`} onClick={()=>toggleBuf(idx)}>{item.isBuffer?"調整中 ✓":"自動調整"}</button>
+            <button className="xb" onClick={()=>mutF(d=>{d.items.splice(idx,1);})}><i className="ti ti-x"/></button>
+          </div>
+          {item.isBuffer&&<div style={{fontSize:"11px",color:"var(--S)",marginTop:"2px"}}>信用卡花越多，此項自動減少</div>}
+        </div>
+      ))}
+      <button className="gh" onClick={()=>mutF(d=>d.items.push({id:uid(),label:"",amt:0,isBuffer:false}))}><i className="ti ti-plus"/> 新增固定項目</button>
+      {fixed.items.length>0&&<div className="fsum">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div><div style={{fontSize:"13px",color:"var(--F)"}}>固定小計</div><div style={{fontSize:"11px",color:"#3D6070",marginTop:"2px"}}>自動同步至每月統整</div></div>
+          <div style={{fontSize:"21px",fontWeight:"700",color:"var(--F)"}}>NT$ {fmt(fixedDisp)}</div>
+        </div>
+        {fixed.target>0&&<div style={{marginTop:"7px",paddingTop:"7px",borderTop:"1px solid var(--F)",display:"flex",justifyContent:"space-between",fontSize:"12px",color:"#3D6070"}}>
+          <span>每月目標</span><span style={{fontWeight:"700"}}>NT$ {fmt(fixed.target)}</span>
+        </div>}
+      </div>}
+    </div>}
+
+
+    {/* ══ FIREBASE CONFIG MODAL ══ */}
+    {showFBCfg&&<div style={{position:"fixed",inset:0,background:"rgba(40,28,16,.6)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:300,animation:"fi .12s"}} onClick={()=>sFBCfg(false)}>
+      <div style={{background:"var(--surf)",borderRadius:"20px 20px 0 0",padding:"20px 20px 36px",width:"100%",maxWidth:"480px",animation:"su .2s cubic-bezier(.2,.7,0,1)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"16px"}}>
+          <span style={{fontSize:"16px",fontWeight:"500"}}>
+            {FB_ON ? "☁️ Firebase 已連接" : "🔗 設定 Firebase 同步"}
+          </span>
+          <button className="xb" style={{fontSize:"20px"}} onClick={()=>sFBCfg(false)}><i className="ti ti-x"/></button>
+        </div>
+        <div style={{background:"var(--Fl)",border:"1px solid var(--F)",borderRadius:"10px",padding:"10px 13px",marginBottom:"16px",fontSize:"12px",color:"#3D6070"}}>
+          {["取得步驟：","1. 前往 console.firebase.google.com","2. 選擇「huasbudget」專案","3. ⚙️ 專案設定 → 你的應用程式 → SDK 設定","4. 複製以下三個值貼入"].map((t,i)=>(
+            <div key={i} style={{marginBottom:"3px",fontWeight:i===0?"500":"400"}}>{t}</div>
+          ))}
+        </div>
+        {[
+          {label:"API Key（apiKey）",ph:"AIzaSy...",val:fbKey,set:sFbKey},
+          {label:"傳送者 ID（messagingSenderId）",ph:"123456789",val:fbSid,set:sFbSid},
+          {label:"應用程式 ID（appId）",ph:"1:123:web:abc...",val:fbAid,set:sFbAid},
+        ].map(({label,ph,val,set},i)=>(
+          <div key={i} style={{marginBottom:"10px"}}>
+            <div style={{fontSize:"11px",color:"var(--lt)",marginBottom:"4px",letterSpacing:".04em"}}>{label}</div>
+            <input className="ti" value={val} placeholder={ph} onChange={e=>set(e.target.value)}
+              style={{fontSize:"13px",fontFamily:"monospace",letterSpacing:".03em"}}/>
+          </div>
+        ))}
+        <button onClick={saveFBConfig}
+          style={{width:"100%",padding:"11px",background:"var(--T)",color:"#fff",border:"none",borderRadius:"10px",fontSize:"14px",cursor:"pointer",marginTop:"6px"}}>
+          <i className="ti ti-cloud-upload"/> 儲存並啟用同步
+        </button>
+        {FB_ON&&<div style={{marginTop:"10px",padding:"9px 12px",background:"#EDF6F1",borderRadius:"8px",border:"1px solid var(--S)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:"12px",color:"var(--S)",fontWeight:"500"}}>
+              {sync==="err"?"⚠ 同步失敗，請確認 Firebase 規則":"☁️ 已連接，資料即時同步"}
+            </div>
+            <div style={{fontSize:"10px",color:"var(--lt)",marginTop:"2px"}}>huasbudget-default-rtdb.firebaseio.com</div>
+          </div>
+          <button onClick={clearFBConfig}
+            style={{padding:"4px 10px",background:"none",border:"1px solid var(--S)",borderRadius:"7px",fontSize:"11px",color:"var(--S)",cursor:"pointer",whiteSpace:"nowrap"}}>
+            重設連線
+          </button>
+        </div>}
+        {!FB_ON&&<div style={{fontSize:"11px",color:"var(--lt)",textAlign:"center",marginTop:"8px"}}>
+          資料庫網址已預設：huasbudget-default-rtdb.firebaseio.com
+        </div>}
+      </div>
+    </div>}
+    {/* ══ REPORT MODAL ══ */}
+    {showReport&&<div className="rpt-ov" onClick={()=>sRpt(false)}>
+      <div className="rpt-panel" onClick={e=>e.stopPropagation()}>
+        <div className="rpt-header">
+          <span className="rpt-title">📊 {yr} 年 {MO[mo-1]}月 月報表</span>
+          <button className="xb" style={{fontSize:"20px"}} onClick={()=>sRpt(false)}><i className="ti ti-x"/></button>
+        </div>
+        <div className="rpt-body">
+          <div className="rpt-text">{genReport()}</div>
+          <button className={`rpt-copy${copied?" done":""}`} onClick={copyReport}>
+            <i className={`ti ti-${copied?"check":"copy"}`}/> {copied?"已複製！":"複製報表"}
+          </button>
+        </div>
+      </div>
+    </div>}
+  </>);
+}
+
+class ErrorBoundary extends React.Component{
+  constructor(p){super(p);this.state={err:null};}
+  static getDerivedStateFromError(e){return{err:e};}
+  componentDidCatch(e,info){console.error("App crash:",e,info);}
+  render(){
+    if(this.state.err){
+      const msg=(this.state.err?.message||'未知錯誤');
+      const stk=(this.state.err?.stack||'').split('\n').slice(0,4).join('\n');
+      return(
+        <div style={{padding:"1.5rem",fontFamily:"var(--fn)"}}>
+          <div style={{fontSize:"26px",marginBottom:"8px"}}>😵</div>
+          <div style={{fontSize:"15px",fontWeight:"500",color:"var(--dk)",marginBottom:"6px"}}>頁面發生錯誤</div>
+          <pre style={{fontSize:"11px",color:"var(--W)",background:"var(--Wl)",padding:"8px 10px",borderRadius:"8px",overflow:"auto",marginBottom:"12px",whiteSpace:"pre-wrap",lineHeight:"1.5"}}>{msg}{"\n"+stk}</pre>
+          <div style={{display:"flex",gap:"8px"}}>
+            <button onClick={()=>this.setState({err:null})}
+              style={{flex:1,padding:"8px",background:"none",border:"1px solid var(--bdr)",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontFamily:"var(--fn)",color:"var(--md)"}}>
+              嘗試繼續
+            </button>
+            <button onClick={()=>window.location.reload()}
+              style={{flex:1,padding:"8px",background:"var(--T)",color:"#fff",border:"none",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontFamily:"var(--fn)"}}>
+              重新整理
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+ReactDOM.createRoot(document.getElementById("root")).render(
+  React.createElement(ErrorBoundary,null,React.createElement(App))
+);
+</script>
+
+<script>
+/* 產生豬豬存錢筒 icon → 設定 apple-touch-icon & PWA manifest */
+(function(){
+  const SVG = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="200" height="200" rx="42" fill="#F4EDE0"/>
+
+    <!-- Stack 1 side (4 coins) -->
+    <rect x="89" y="105" width="38" height="49" rx="2" fill="#C49028" stroke="#3A2A1C" stroke-width="4.5"/>
+    <line x1="89" y1="117" x2="127" y2="117" stroke="#3A2A1C" stroke-width="3"/>
+    <line x1="89" y1="129" x2="127" y2="129" stroke="#3A2A1C" stroke-width="3"/>
+    <line x1="89" y1="141" x2="127" y2="141" stroke="#3A2A1C" stroke-width="3"/>
+    <!-- Stack 1 top face -->
+    <ellipse cx="108" cy="105" rx="19" ry="7.5" fill="#EBC84A" stroke="#3A2A1C" stroke-width="4.5"/>
+    <line x1="101" y1="103" x2="105" y2="100" stroke="#3A2A1C" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="111" y1="103" x2="115" y2="100" stroke="#3A2A1C" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Stack 2 side (3 coins) -->
+    <rect x="142" y="118" width="34" height="36" rx="2" fill="#C49028" stroke="#3A2A1C" stroke-width="4"/>
+    <line x1="142" y1="130" x2="176" y2="130" stroke="#3A2A1C" stroke-width="3"/>
+    <line x1="142" y1="142" x2="176" y2="142" stroke="#3A2A1C" stroke-width="3"/>
+    <!-- Stack 2 top face -->
+    <ellipse cx="159" cy="118" rx="17" ry="6.5" fill="#EBC84A" stroke="#3A2A1C" stroke-width="4"/>
+    <line x1="153" y1="116" x2="157" y2="113" stroke="#3A2A1C" stroke-width="2" stroke-linecap="round"/>
+    <line x1="163" y1="116" x2="167" y2="113" stroke="#3A2A1C" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Standing coin (front-left, renders last = on top) -->
+    <circle cx="52" cy="139" r="29" fill="#C49028" stroke="#3A2A1C" stroke-width="5"/>
+    <circle cx="52" cy="139" r="22" fill="#EBC84A"/>
+    <text x="52" y="148" text-anchor="middle" fill="#3A2A1C" font-size="26" font-weight="bold" font-family="Georgia,serif">$</text>
+  </svg>`;
+
+
+  const blob = new Blob([SVG],{type:'image/svg+xml'});
+  const url  = URL.createObjectURL(blob);
+  const img  = new Image();
+  img.onload = function(){
+    const SIZES = [180, 192, 512];
+    const pngs  = {};
+    SIZES.forEach(s=>{
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = s;
+      cv.getContext('2d').drawImage(img,0,0,s,s);
+      pngs[s] = cv.toDataURL('image/png');
+    });
+    URL.revokeObjectURL(url);
+
+    /* apple-touch-icon */
+    const atl = document.createElement('link');
+    atl.rel  = 'apple-touch-icon';
+    atl.href = pngs[180];
+    document.head.appendChild(atl);
+
+    /* favicon */
+    const fav = document.createElement('link');
+    fav.rel  = 'icon';
+    fav.type = 'image/png';
+    fav.href = pngs[192];
+    document.head.appendChild(fav);
+
+    /* PWA manifest */
+    const manifest = {
+      name:'記帳本', short_name:'記帳本',
+      description:'個人記帳 · 信用卡 · 固定開銷',
+      start_url:'.', display:'standalone',
+      background_color:'#F4EDE0', theme_color:'#F4EDE0',
+      icons:[
+        {src:pngs[192], sizes:'192x192', type:'image/png'},
+        {src:pngs[512], sizes:'512x512', type:'image/png', purpose:'any maskable'}
+      ]
+    };
+    const mb = new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+    const ml = document.createElement('link');
+    ml.rel  = 'manifest';
+    ml.href = URL.createObjectURL(mb);
+    document.head.appendChild(ml);
+  };
+  img.src = url;
+})();
+</script>
+</body>
+</html>
