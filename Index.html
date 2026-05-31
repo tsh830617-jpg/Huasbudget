@@ -893,8 +893,8 @@ function App(){
             </div>
             <div style={{fontSize:"10px",color:"var(--lt)",marginTop:"2px"}}>huasbudget-default-rtdb.firebaseio.com</div>
           </div>
-          <button onClick={clearFBConfig}
-            style={{padding:"4px 10px",background:"none",border:"1px solid var(--S)",borderRadius:"7px",fontSize:"11px",color:"var(--S)",cursor:"pointer",whiteSpace:"nowrap"}}>
+          <button onClick={()=>{if(confirm("確定要清除 Firebase 設定？\n清除後需重新輸入 API Key 才能同步。"))clearFBConfig();}}
+            style={{padding:"4px 10px",background:"none",border:"1px solid var(--W)",borderRadius:"7px",fontSize:"11px",color:"var(--W)",cursor:"pointer",whiteSpace:"nowrap"}}>
             重設連線
           </button>
         </div>}
