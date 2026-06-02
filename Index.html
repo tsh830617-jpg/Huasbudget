@@ -452,7 +452,6 @@ function App(){
   const[showReport,sRpt]=useState(false);
   const[copied,sCopied]=useState(false);
   const[showFBCfg,sFBCfg]=useState(false);
-  const[pinUnlocked,sPinU]=useState(false);
   const[fbKey,sFbKey]=useState('');
   const[fbSid,sFbSid]=useState('');
   const[fbAid,sFbAid]=useState('');
@@ -674,9 +673,6 @@ function App(){
   };
 
   /* ══ RENDER ══ */
-  /* 密碼鎖定：未解鎖就顯示 PIN 畫面 */
-  if(!pinUnlocked)return<PinScreen onUnlock={()=>sPinU(true)}/>;
-
   return(<>
     {/* Firebase 狀態整合進齒輪按鈕，不顯示 banner */}
 
@@ -974,7 +970,7 @@ function App(){
             {FB_ON ? "☁️ Firebase 已連接" : "🔗 設定 Firebase 同步"}
           </span>
           <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-          <button onClick={()=>{if(confirm("清除現有密碼，重新設定？")){localStorage.removeItem("lb:PIN");sFBCfg(false);sPinU(false);}}}
+          <button onClick={()=>{if(confirm("清除現有密碼，重新設定？")){localStorage.removeItem("lb:PIN");sFBCfg(false);window.location.reload();}}}
             style={{padding:"3px 10px",background:"none",border:"1px solid var(--bdr)",borderRadius:"7px",fontSize:"12px",color:"var(--lt)",cursor:"pointer",fontFamily:"var(--fn)"}}>
             <i className="ti ti-lock"/> 改密碼
           </button>
@@ -1036,6 +1032,13 @@ function App(){
   </>);
 }
 
+/* ─── LockedApp：最外層密碼鎖定包裝 ─── */
+function LockedApp(){
+  const[unlocked,sUnlocked]=React.useState(false);
+  if(!unlocked)return React.createElement(PinScreen,{onUnlock:()=>sUnlocked(true)});
+  return React.createElement(App);
+}
+
 class ErrorBoundary extends React.Component{
   constructor(p){super(p);this.state={err:null};}
   static getDerivedStateFromError(e){return{err:e};}
@@ -1066,7 +1069,7 @@ class ErrorBoundary extends React.Component{
   }
 }
 ReactDOM.createRoot(document.getElementById("root")).render(
-  React.createElement(ErrorBoundary,null,React.createElement(App))
+  React.createElement(ErrorBoundary,null,React.createElement(LockedApp))
 );
 </script>
 
