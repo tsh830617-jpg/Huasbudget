@@ -452,6 +452,9 @@ function App(){
   const[showReport,sRpt]=useState(false);
   const[copied,sCopied]=useState(false);
   const[showFBCfg,sFBCfg]=useState(false);
+  const[addExpFor,sAddExpFor]=useState(null); /* 新增消費的目標卡 */
+  const[expEdit,sExpEdit]=useState(false);    /* 消費明細編輯模式 */
+  const[addCbFor,sAddCbFor]=useState(null);   /* 新增回饋的目標卡 */
   const[fbKey,sFbKey]=useState('');
   const[fbSid,sFbSid]=useState('');
   const[fbAid,sFbAid]=useState('');
@@ -557,6 +560,8 @@ function App(){
   const addCard=()=>{if(!nn.trim())return;const idx=data.cards.length;mut(d=>d.cards.push({id:uid(),name:nn.trim(),expenses:[],cashback:[]}));sCi(idx);sAdd(false);sNn("");};
   const delCard=id=>{if(!confirm("確定刪除？"))return;mut(d=>{d.cards=d.cards.filter(c=>c.id!==id);d.salary=d.salary.filter(s=>s.cardId!==id);});sCi(0);};
   const aE=cid=>mut(d=>d.cards.find(c=>c.id===cid)?.expenses.push({id:uid(),amt:0,note:"",tag:null,splitAmt:null}));
+  const addExpD=(cid,amt,note)=>mut(d=>d.cards.find(c=>c.id===cid)?.expenses.push({id:uid(),amt,note,tag:null,splitAmt:null}));
+  const addCbD=(cid,amt,note)=>mut(d=>d.cards.find(c=>c.id===cid)?.cashback.push({id:uid(),amt,note}));
   const uE=(cid,eid,f,v)=>mut(d=>{const e=d.cards.find(c=>c.id===cid)?.expenses.find(e=>e.id===eid);if(e)e[f]=v;});
   const dE=(cid,eid)=>mut(d=>{const c=d.cards.find(c=>c.id===cid);if(c)c.expenses=c.expenses.filter(e=>e.id!==eid);});
   const cycE=(cid,eid)=>{
@@ -716,16 +721,22 @@ function App(){
           <span style={{fontSize:"17px",fontWeight:"500"}}>{ac.name}</span>
           <button onClick={()=>delCard(ac.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--lt)",fontSize:"12px",display:"flex",alignItems:"center",gap:"3px"}}><i className="ti ti-trash"/> 刪除</button>
         </div>
-        <span className="slbl">✦ 消費明細</span>
-        <div style={{fontSize:"11px",color:"var(--lt)",marginBottom:"6px"}}>點「標記」循環：一般 → 金庫（全額）→ 待收款（可調整金額）</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"12px 0 4px"}}>
+          <span style={{fontSize:"11px",color:"var(--lt)",letterSpacing:".06em"}}>✦ 消費明細</span>
+          <button onClick={()=>sExpEdit(m=>!m)}
+            style={{padding:"2px 9px",border:`1px solid ${expEdit?"var(--T)":"var(--bdr)"}`,borderRadius:"8px",background:expEdit?"var(--Tl)":"none",color:expEdit?"var(--T)":"var(--lt)",fontSize:"11px",cursor:"pointer",fontFamily:"var(--fn)"}}>
+            {expEdit?"完成":"編輯"}
+          </button>
+        </div>
+        <div style={{fontSize:"11px",color:"var(--lt)",marginBottom:"6px"}}>點「標記」循環：一般 → 金庫 → 待收款</div>
         {(ac.expenses||[]).map(e=>(
           <div key={e.id}>
-            <div className="r4">
+            <div style={{display:"grid",gridTemplateColumns:expEdit?"80px 1fr auto 22px":"80px 1fr auto",gap:"5px",alignItems:"center",marginBottom:"3px"}}>
               <Amt val={e.amt} set={v=>uE(ac.id,e.id,"amt",v)} tag={e.tag}/>
               <input className="ti" value={e.note} placeholder="備註" onChange={ev=>uE(ac.id,e.id,"note",ev.target.value)}
                 style={e.tag==="joint"?{borderColor:"var(--J)",background:"var(--Jl)"}:e.tag==="pending"?{borderColor:"var(--P)",background:"var(--Pl)"}:{}}/>
               <button className={`tagbtn${tagCls(e.tag)}`} onClick={()=>cycE(ac.id,e.id)}>{tagLabel(e.tag)}</button>
-              <button className="xb" onClick={()=>dE(ac.id,e.id)}><i className="ti ti-x"/></button>
+              {expEdit&&<button className="xb" onClick={()=>dE(ac.id,e.id)}><i className="ti ti-x"/></button>}
             </div>
             {/* split sub-row — shows when tagged */}
             {e.tag&&<div className="split-row">
@@ -740,7 +751,10 @@ function App(){
             </div>}
           </div>
         ))}
-        <button className="gh" onClick={()=>aE(ac.id)}><i className="ti ti-plus"/> 新增消費</button>
+        <button className="gh" onClick={()=>{sAddExpFor(ac.id);sExpEdit(false);}}
+          style={{background:"var(--T)",borderColor:"var(--T)",color:"#fff",borderStyle:"solid"}}>
+          <i className="ti ti-plus"/> 新增消費
+        </button>
         <div className="dv"/>
         <span className="slbl" style={{marginTop:0}}>✦ 回饋點數（扣除）</span>
         {(ac.cashback||[]).length>0&&(()=>{const a=ac.cashback.map(x=>Math.round(+x.amt||0));const s=a.reduce((a,b)=>a+b,0);return<div className="cbf">{a.map(x=>`-${x}`).join(" ")} = <span style={{fontWeight:"700"}}>-{fmt(s)}</span></div>;})()}
@@ -751,7 +765,10 @@ function App(){
             <button className="xb" onClick={()=>dC(ac.id,cb.id)}><i className="ti ti-x"/></button>
           </div>
         ))}
-        <button className="gh" onClick={()=>aC(ac.id)}><i className="ti ti-plus"/> 新增點數</button>
+        <button className="gh" onClick={()=>sAddCbFor(ac.id)}
+          style={{background:"var(--S)",borderColor:"var(--S)",color:"#fff",borderStyle:"solid"}}>
+          <i className="ti ti-plus"/> 新增點數
+        </button>
         {(()=>{
           const pE=(ac.expenses||[]).reduce((s,e)=>s+expPersonal(e),0);
           const jE=(ac.expenses||[]).reduce((s,e)=>s+expJoint(e),0);
@@ -1014,6 +1031,33 @@ function App(){
         </div>}
       </div>
     </div>}
+    {/* ══ ADD EXPENSE SHEET ══ */}
+    {addExpFor&&<AddExpSheet
+      onAdd={(amt,note)=>addExpD(addExpFor,amt,note)}
+      onClose={()=>sAddExpFor(null)}
+    />}
+
+    {/* ══ ADD CASHBACK SHEET ══ */}
+    {addCbFor&&(()=>{
+      function CbSheet(){
+        const[ex,sEx]=useState("");const[dp,sDp]=useState("0");const[note,sNote]=useState("");
+        const upd=e=>{const r=evalX(e);if(r!=null)sDp(fmt(r));else{const m=e.match(/\d+\.?\d*$/);sDp(m?fmt(+m[0]):"0");}};
+        const press=k=>{if(k==="C"){sEx("");sDp("0");return;}if(k==="⌫"){const n=ex.slice(0,-1);sEx(n);n?upd(n):sDp("0");return;}if(k==="="){const r=evalX(ex);if(r!=null){sEx(String(r));sDp(fmt(r));}return;}const n=ex+k;sEx(n);if(!["+","-","×","÷"].includes(k))upd(n);};
+        const ok=()=>{const r=evalX(ex);const amt=r!=null?Math.round(r):parseFloat(ex)||0;if(!amt)return;addCbD(addCbFor,amt,note);sAddCbFor(null);};
+        const KS=[{l:"C",c:"kc"},{l:"⌫",c:"kc"},{l:"÷",c:"ko"},{l:"×",c:"ko"},{l:"7",c:"kn"},{l:"8",c:"kn"},{l:"9",c:"kn"},{l:"-",c:"ko"},{l:"4",c:"kn"},{l:"5",c:"kn"},{l:"6",c:"kn"},{l:"+",c:"ko"},{l:"1",c:"kn"},{l:"2",c:"kn"},{l:"3",c:"kn"},{l:"=",c:"ke"},{l:"0",c:"kn",s:{gridColumn:"span 2"}},{l:".",c:"kn"},{l:"加入",c:"kk",a:ok}];
+        return(<div className="ov" onClick={()=>sAddCbFor(null)}><div className="cp" onClick={e=>e.stopPropagation()}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
+            <span style={{fontSize:"15px",fontWeight:"500",fontFamily:"var(--fn)"}}>新增回饋點數</span>
+            <button className="xb" style={{fontSize:"20px"}} onClick={()=>sAddCbFor(null)}><i className="ti ti-x"/></button>
+          </div>
+          <input className="ti" value={note} placeholder="備註（如：前一期折扣）" onChange={e=>sNote(e.target.value)} autoFocus style={{marginBottom:"12px",fontSize:"15px",padding:"9px 12px"}}/>
+          <div className="cdisp"><div className="cexpr">{ex||"\u00a0"}</div><div className="cres">{dp}</div></div>
+          <div className="cgrid">{KS.map((k,i)=><button key={i} className={`cb ${k.c}`} style={k.s||{}} onClick={k.a||(()=>press(k.l))}>{k.l}</button>)}</div>
+        </div></div>);
+      }
+      return<CbSheet/>;
+    })()}
+
     {/* ══ REPORT MODAL ══ */}
     {showReport&&<div className="rpt-ov" onClick={()=>sRpt(false)}>
       <div className="rpt-panel" onClick={e=>e.stopPropagation()}>
@@ -1030,6 +1074,56 @@ function App(){
       </div>
     </div>}
   </>);
+}
+
+/* ─── AddExpSheet：備註 + 計算機合一輸入 ─── */
+function AddExpSheet({onAdd,onClose}){
+  const[ex,sEx]=useState("");
+  const[dp,sDp]=useState("0");
+  const[note,sNote]=useState("");
+  const nr=useRef(null);
+
+  const upd=e=>{const r=evalX(e);if(r!=null)sDp(fmt(r));else{const m=e.match(/\d+\.?\d*$/);sDp(m?fmt(+m[0]):"0");}};
+  const press=k=>{
+    if(k==="C"){sEx("");sDp("0");return;}
+    if(k==="⌫"){const n=ex.slice(0,-1);sEx(n);n?upd(n):sDp("0");return;}
+    if(k==="="){const r=evalX(ex);if(r!=null){sEx(String(r));sDp(fmt(r));}return;}
+    const n=ex+k;sEx(n);if(!["+","-","×","÷"].includes(k))upd(n);
+  };
+  const confirm=()=>{
+    const r=evalX(ex);
+    const amt=r!=null?Math.round(r):parseFloat(ex)||0;
+    if(!amt)return;
+    onAdd(amt,note);
+    onClose();
+  };
+  const KS=[
+    {l:"C",c:"kc"},{l:"⌫",c:"kc"},{l:"÷",c:"ko"},{l:"×",c:"ko"},
+    {l:"7",c:"kn"},{l:"8",c:"kn"},{l:"9",c:"kn"},{l:"-",c:"ko"},
+    {l:"4",c:"kn"},{l:"5",c:"kn"},{l:"6",c:"kn"},{l:"+",c:"ko"},
+    {l:"1",c:"kn"},{l:"2",c:"kn"},{l:"3",c:"kn"},{l:"=",c:"ke"},
+    {l:"0",c:"kn",s:{gridColumn:"span 2"}},{l:".",c:"kn"},
+    {l:"加入",c:"kk",a:confirm},
+  ];
+  return(
+    <div className="ov" onClick={onClose}>
+      <div className="cp" onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
+          <span style={{fontSize:"15px",fontWeight:"500",fontFamily:"var(--fn)"}}>新增消費</span>
+          <button className="xb" style={{fontSize:"20px"}} onClick={onClose}><i className="ti ti-x"/></button>
+        </div>
+        <input ref={nr} className="ti" value={note} placeholder="消費項目（如：洗鞋劑、Netflix）"
+          onChange={e=>sNote(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&e.target.blur()}
+          autoFocus
+          style={{marginBottom:"12px",fontSize:"15px",padding:"9px 12px"}}/>
+        <div className="cdisp"><div className="cexpr">{ex||"\u00a0"}</div><div className="cres">{dp}</div></div>
+        <div className="cgrid">
+          {KS.map((k,i)=><button key={i} className={`cb ${k.c}`} style={k.s||{}} onClick={k.a||(()=>press(k.l))}>{k.l}</button>)}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ─── LockedApp：最外層密碼鎖定包裝 ─── */
