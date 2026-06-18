@@ -14,12 +14,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-tc-webfont@1.0.0/style.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/dist/tabler-icons.min.css">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script>if(!window.React)document.write('<script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>');</script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script>if(!window.ReactDOM)document.write('<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>');</script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.25.6/babel.min.js"></script>
+<script>if(!window.Babel)document.write('<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>');</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -817,21 +820,35 @@ function App(){
 
         {/* ── 回饋點數 ── */}
         <div className="dv"/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"5px"}}>
-          <span className="slbl" style={{marginTop:0,marginBottom:0}}>✦ 回饋點數（扣除）</span>
-          {(ac.cashback||[]).length>0&&(()=>{const a=ac.cashback.map(x=>Math.round(+x.amt||0));const s=a.reduce((a,b)=>a+b,0);return<div className="cbf" style={{marginBottom:0}}>{a.map(x=>`-${x}`).join(" ")} = <span style={{fontWeight:"700"}}>-{fmt(s)}</span></div>;})()}
-        </div>
-        {(ac.cashback||[]).map(cb=>(
-          <div key={cb.id} style={{display:"grid",gridTemplateColumns:expEdit?"80px 1fr 22px":"80px 1fr",gap:"5px",alignItems:"center",marginBottom:"5px"}}>
-            <Amt val={cb.amt} set={v=>uC(ac.id,cb.id,"amt",v)}/>
-            <input className="ti" value={cb.note} placeholder="備註" onChange={ev=>uC(ac.id,cb.id,"note",ev.target.value)}/>
-            {expEdit&&<button className="xb" onClick={()=>dC(ac.id,cb.id)}><i className="ti ti-x"/></button>}
-          </div>
-        ))}
-        <button className="gh" onClick={()=>sAddCbFor(ac.id)}
-          style={{background:"var(--S)",borderColor:"var(--S)",color:"#fff",borderStyle:"solid"}}>
-          <i className="ti ti-plus"/> 新增點數
-        </button>
+        {(()=>{
+          const cbs=ac.cashback||[];
+          const cbTotal=cbs.reduce((s,x)=>s+(+x.amt||0),0);
+          return(<>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:expEdit?"8px":"2px"}}>
+              <span className="slbl" style={{marginTop:0,marginBottom:0}}>✦ 回饋點數（扣除）</span>
+              {!expEdit&&cbs.length>0&&<span style={{fontSize:"13px",fontWeight:"700",color:"var(--S)"}}>−{fmt(cbTotal)}</span>}
+            </div>
+            {/* 編輯模式才顯示各筆明細 */}
+            {expEdit&&cbs.map(cb=>(
+              <div key={cb.id} style={{display:"grid",gridTemplateColumns:"80px 1fr 22px",gap:"5px",alignItems:"center",marginBottom:"5px"}}>
+                <Amt val={cb.amt} set={v=>uC(ac.id,cb.id,"amt",v)}/>
+                <input className="ti" value={cb.note} placeholder="備註" onChange={ev=>uC(ac.id,cb.id,"note",ev.target.value)}/>
+                <button className="xb" onClick={()=>dC(ac.id,cb.id)}><i className="ti ti-x"/></button>
+              </div>
+            ))}
+            {/* 平時顯示簡易 tag 列 */}
+            {!expEdit&&cbs.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:"4px",marginBottom:"4px"}}>
+              {cbs.map(cb=><span key={cb.id} style={{fontSize:"11px",padding:"2px 7px",borderRadius:"20px",background:"var(--Sl)",color:"var(--S)",border:"1px solid var(--S)"}}>{cb.note||"回饋"} −{fmt(+cb.amt||0)}</span>)}
+            </div>}
+            {expEdit&&<button className="gh" onClick={()=>sAddCbFor(ac.id)}
+              style={{background:"var(--S)",borderColor:"var(--S)",color:"#fff",borderStyle:"solid"}}>
+              <i className="ti ti-plus"/> 新增點數
+            </button>}
+            {!expEdit&&<button className="gh" onClick={()=>sExpEdit(true)} style={{fontSize:"11px",color:"var(--S)",borderColor:"var(--S)"}}>
+              <i className="ti ti-pencil"/> 編輯回饋
+            </button>}
+          </>);
+        })()}
 
         {/* ── 小計欄 ── */}
         {(()=>{
