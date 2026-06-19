@@ -62,7 +62,7 @@ input[type=number]{-moz-appearance:textfield}
 .pr{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:11px}
 .pl{padding:4px 12px;border-radius:20px;border:1px solid var(--bdr);font-size:13px;background:transparent;color:var(--md);cursor:pointer}
 .pl.on{background:var(--T);border-color:var(--T);color:#fff}
-.gh{padding:4px 9px;border-radius:20px;font-size:12px;background:none;border:1px dashed var(--bdr);color:var(--lt);cursor:pointer;display:inline-flex;align-items:center;gap:3px}
+.gh{padding:4px 9px;border-radius:20px;font-size:12px;background:none;border:1px dashed var(--bdr);color:var(--lt);cursor:pointer;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .gh:hover{border-color:var(--md);color:var(--md)}
 .sc{background:var(--surf);border:1px solid var(--bdr);border-radius:14px;padding:12px 14px;margin-bottom:10px}
 .slbl{font-size:11px;color:var(--lt);letter-spacing:.06em;display:block;margin:12px 0 5px}
@@ -711,8 +711,8 @@ function App(){
       <div className="pr">
         {data.cards.map((c,i)=><button key={c.id} className={`pl${i===si?" on":""}`} onClick={()=>sCi(i)}>{c.name}</button>)}
         {adding
-          ?<div className="ncr"><input ref={nr} className="nci" value={nn} placeholder="卡片名稱" autoFocus onChange={e=>sNn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCard()}/><button className="ncc" onClick={addCard}>確認</button><button className="xb" onClick={()=>{sAdd(false);sNn("");}}><i className="ti ti-x"/></button></div>
-          :<button className="gh" onClick={()=>{sAdd(true);setTimeout(()=>nr.current?.focus(),50);}}><i className="ti ti-plus"/> 新增卡片</button>
+          ?<div className="ncr"><input ref={nr} className="nci" value={nn} placeholder="卡片名稱" autoFocus onChange={e=>sNn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCard()}/><button className="ncc" onClick={addCard}>確認</button><button className="xb" onClick={()=>{sAdd(false);sNn("");}}>×</button></div>
+          :<button className="gh" onClick={()=>{sAdd(true);setTimeout(()=>nr.current?.focus(),50);}}>+ 新增卡片</button>
         }
       </div>
       {!ac&&<div className="empty"><i className="ti ti-credit-card"/><p>點上方新增卡片</p></div>}
@@ -748,7 +748,7 @@ function App(){
             ))}
             <button className="gh" onClick={()=>{sAddExpFor(ac.id);sExpEdit(false);}}
               style={{background:"var(--T)",borderColor:"var(--T)",color:"#fff",borderStyle:"solid"}}>
-              <i className="ti ti-plus"/> 新增消費
+              + 新增消費
             </button>
           </>);
         })()}
@@ -839,10 +839,10 @@ function App(){
             </div>}
             {expEdit&&<button className="gh" onClick={()=>sAddCbFor(ac.id)}
               style={{background:"var(--S)",borderColor:"var(--S)",color:"#fff",borderStyle:"solid"}}>
-              <i className="ti ti-plus"/> 新增點數
+              + 新增點數
             </button>}
             {!expEdit&&<button className="gh" onClick={()=>sExpEdit(true)} style={{fontSize:"11px",color:"var(--S)",borderColor:"var(--S)"}}>
-              <i className="ti ti-pencil"/> 編輯回饋
+              ✎ 編輯回饋
             </button>}
           </>);
         })()}
@@ -913,7 +913,7 @@ function App(){
         <div className="sl"><i className="ti ti-credit-card" style={{color:"var(--lt)",fontSize:"13px"}}/>{item.label}<span className="ab tab2">自動</span></div>
         <button className="xb" onClick={()=>dS(item.id)}><i className="ti ti-x"/></button></div>
       </div>;})}
-      <div className="ar">{data.cards.filter(c=>!data.salary.some(s=>s.cardId===c.id)).map(c=>(<button key={c.id} className="gh" onClick={()=>lC(c.id)}><i className="ti ti-credit-card"/> 連結 {c.name}</button>))}</div>
+      <div className="ar">{data.cards.filter(c=>!data.salary.some(s=>s.cardId===c.id)).map(c=>(<button key={c.id} className="gh" onClick={()=>lC(c.id)}>連結 {c.name}</button>))}</div>
 
       {/* 現金 */}
       {cashTotal()>0&&<><div className="sg csg" style={{marginTop:"16px"}}>現金支出</div>
@@ -969,7 +969,7 @@ function App(){
           </div></div>
         ))}
       </>}
-      <button className="gh" style={{marginTop:"7px"}} onClick={aOT}><i className="ti ti-plus"/> 新增本月額外項目</button>
+      <button className="gh" style={{marginTop:"7px"}} onClick={aOT}>+ 新增本月額外項目</button>
 
       {/* 合計 */}
       {(fixed.items.length>0||cardLinks.length>0||oneTimers.length>0||cashTotal()>0)&&<div className={`stot${isOver?" over":""}`}>
@@ -1045,7 +1045,7 @@ function App(){
           {item.isBuffer&&<div style={{fontSize:"11px",color:"var(--S)",marginTop:"2px"}}>信用卡花越多，此項自動減少</div>}
         </div>
       ))}
-      <button className="gh" onClick={()=>mutF(d=>d.items.push({id:uid(),label:"",amt:0,isBuffer:false}))}><i className="ti ti-plus"/> 新增固定項目</button>
+      <button className="gh" onClick={()=>mutF(d=>d.items.push({id:uid(),label:"",amt:0,isBuffer:false}))}>+ 新增固定項目</button>
       {fixed.items.length>0&&<div className="fsum">
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div><div style={{fontSize:"13px",color:"var(--F)"}}>固定小計</div><div style={{fontSize:"11px",color:"#3D6070",marginTop:"2px"}}>自動同步至每月統整</div></div>
